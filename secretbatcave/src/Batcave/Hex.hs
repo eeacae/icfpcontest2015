@@ -97,7 +97,3 @@ unitPlaceable b u = unitInBounds b u && unitUnoccupied b u
 placeUnit :: Unit -> Board -> Maybe Board
 placeUnit u b | unitPlaceable b u = Just $ b // [(c, Full) | c <- members u]
               | otherwise         = Nothing
-
--- | Translate the members of a unit by a given offset.
-translateUnit :: Unit -> Cell -> Unit
-translateUnit u (x', y') = u { members = [(x + x', y + y') | (x, y) <- members u]}
