@@ -1,3 +1,5 @@
+module Batcave.Hex where
+
 import Data.Array
 
 -- | An initial game configuration and information on how many games to play.
