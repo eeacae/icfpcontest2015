@@ -47,6 +47,11 @@ mapUnit f u = u {
   unitPivot   = f $ unitPivot u
 }
 
+-- | Place a unit on a board. Return @Nothing@ if the placement is invalid.
+placeUnit :: Unit -> Board -> Maybe Board
+placeUnit u b | unitPlaceable b u = Just $ b // [(c, Full) | c <- V.toList (unitMembers u)]
+              | otherwise         = Nothing
+
 -- | Convert a Cell to a Cubic. Taken from <http://www.redblobgames.com/grids/hexagons/>
 cellToCubic :: Cell -> Cubic
 cellToCubic (Cell col row) = Cubic x y z
