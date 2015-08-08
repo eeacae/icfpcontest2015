@@ -87,6 +87,9 @@ HT.Hexagon.prototype.draw = function(ctx) {
     if(this.locked)
         ctx.fillStyle = "#de930c";
 
+    if(this.current)
+        ctx.fillStyle = "#0099cc";
+
     if(this.disabled)
         ctx.fillStyle = "#000000";
 

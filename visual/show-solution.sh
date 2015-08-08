@@ -6,7 +6,7 @@ FRAMES=$DIR/js/frames.js
 INDEX=$DIR/index.html
 
 echo -n "var frames = " > $FRAMES
-$PRETTY $DIR/../problems/*.json >> $FRAMES
+$PRETTY $@ >> $FRAMES
 
 if which xdg-open &> /dev/null; then
     xdg-open $INDEX
