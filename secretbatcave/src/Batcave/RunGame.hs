@@ -37,12 +37,12 @@ data UnitScore = UnitScore {
 
 data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
 
-runGame :: Problem -> [Unit] -> [Command] -> [UnitScore]
-runGame problem us cs =
+runGame :: Board -> [Unit] -> [Command] -> [UnitScore]
+runGame initial_board us cs =
   let
     initialGameState = Game {
       source = us
-    , board = initialBoard problem
+    , board = initial_board
     , cmds = cs
     , unitScores = []
     }
