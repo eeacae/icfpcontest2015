@@ -1,9 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Main where
+module Batcave.HexSpec where
 
 import Control.Monad
 import System.Exit
+import Test.Hspec
 import Test.QuickCheck
 import Test.QuickCheck.Property
 import GHC.Arr (Ix(..))
@@ -11,6 +12,41 @@ import GHC.Arr (Ix(..))
 import Batcave.Commands
 import Batcave.Types
 import Batcave.Hex
+
+spec :: Spec
+spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
+  it "" $ property prop_emptyBoardNotOccupied
+  it "" $ property prop_cellCubicInvariance
+  it "" $ property prop_translateSE
+  it "" $ property prop_translateSW
+  it "" $ property prop_rotateInverse1
+  it "" $ property prop_rotateInverse2
+  it "" $ property prop_rotateOrder6CW
+  it "" $ property prop_rotateOrder6CCW
+  it "" $ property prop_translateCommutative
+  it "" $ property prop_cellDistanceNonNegative
+  it "" $ property prop_cellDistanceIdentity
+  it "" $ property prop_cellDistanceCommutative
+  it "" $ property prop_cellDistanceTriangle
+  it "" $ property prop_translateCellEastDistance
+  it "" $ property prop_translateCellWestDistance
+  it "" $ property prop_translateCellSouthEastDistance
+  it "" $ property prop_translateCellSouthWestDistance
+  it "" $ property prop_translateCellEastWestInverse
+  it "" $ property prop_translateCellWestEastInverse
+  it "" $ property prop_translateCellTriangleSouthEast
+  it "" $ property prop_translateCellTriangleSouthWest
+  it "" $ property prop_rotateCellCWCCWInverse
+  it "" $ property prop_rotateCellCCWCWInverse
+  it "" $ property prop_rotateCellCWDistance
+  it "" $ property prop_rotateCellCCWDistance
+  it "" $ property prop_translateUnitEastWestInverse
+  it "" $ property prop_translateUnitWestEastInverse
+  it "" $ property prop_translateUnitTriangleSouthEast
+  it "" $ property prop_translateUnitTriangleSouthWest
+  it "" $ property prop_rotateUnitCWCCWInverse
+  it "" $ property prop_rotateUnitCCWCWInverse
+  it "Movement commands commute" $ property prop_applyCommandCommutative
 
 data BoardDims = BoardDims Int Int
   deriving (Eq, Show)
