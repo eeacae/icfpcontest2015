@@ -83,7 +83,7 @@ pushUnitScore uScore =
 -- | Runs the game within the monad until running out of commands/units.
 runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m Void
 runGameInternal = do
-  u <- positionUnit <$> popUnit
+  u <- popUnit >>= positionUnit
   u' <- moveUntilLocked u
   lockPiece u'
   lines_scored <- clearLines
