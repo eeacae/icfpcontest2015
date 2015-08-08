@@ -78,17 +78,11 @@ moveUntilLocked unit = do
   -- precondition: unitPlaceable right now.
   b <- board <$> get
   c <- popCommand
-  let unit' = move c unit
+  let unit' = applyCommand c unit
   if unitPlaceable b unit'
     then moveUntilLocked unit'
     else return unit
 -- TODO: QuickCheck property: return value should be unitPlaceable 
-
--- | The effect of moving a unit, ignoring boundary conditions and
--- intersections.
--- TODO: placeholder, likely defined in Hex.
-move :: Command -> Unit -> Unit
-move = undefined
 
 ------------------------------------------------------------
 -- scoring
