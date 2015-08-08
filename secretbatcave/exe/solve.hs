@@ -9,8 +9,10 @@ import           Control.Parallel.Strategies
 import           Data.Aeson
 import qualified Data.ByteString.Lazy        as BS
 import           Data.List
+import           Data.Maybe
 import           Options.Applicative
 
+import           Batcave.IO
 import           Batcave.Types
 
 data Options = Options
@@ -42,15 +44,13 @@ main = execParser opts >>= run
 run :: Options -> IO ()
 run o@Options{..} = do
     threads <- maybe getNumCapabilities return limitCores
-    ps <- mapM load problems
-    outputAll $ parMap rpar (solve phrases) ps
+    ps <- mapM loadProblemFile problems
+    outputAll . concat $ parMap rpar (solve phrases) (catMaybes ps)
   where
-    load :: FilePath -> IO Problem
-    load path = error "Load not implemented"
-
     solve :: [String] -> Problem -> [Solution]
     solve words path = []
 
+    outputAll :: [Solution] -> IO ()
     outputAll s =
         let go [] = return ()
             go (r:rs) = BS.putStrLn (encode r <> ",") >> go rs
