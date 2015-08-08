@@ -132,11 +132,11 @@ translateUnitWest = mapUnit translateCellWest
 
 -- | Translate a Unit 1 space SouthEast
 translateUnitSouthEast :: Unit -> Unit
-translateUnitSouthEast = mapUnit translateCellEast
+translateUnitSouthEast = mapUnit translateCellSouthEast
 
 -- | Translate a Unit 1 space SouthWest
 translateUnitSouthWest :: Unit -> Unit
-translateUnitSouthWest = mapUnit translateCellWest
+translateUnitSouthWest = mapUnit translateCellSouthWest
 
 -- | Rotate a Unit clockwise
 rotateUnitCW :: Unit -> Unit
