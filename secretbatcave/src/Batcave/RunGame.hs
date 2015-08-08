@@ -45,16 +45,19 @@ runGame problem us cs =
     , cmds = cs
     , unitScores = []
     }
-  in unitScores $ execState runGameInternal initialGameState
+  in unitScores $
+    flip execState initialGameState $
+    runExceptT $
+    runGameInternal
 
-popUnit :: (MonadState Game m) => m Unit
+popUnit :: (MonadState Game m, MonadError EndOfGame m) => m Unit
 popUnit = do
   state <- get
   case source state of
     (u:us) -> do
       put $ state {source = us}
       return u
-    [] -> undefined
+    [] -> throwError OutOfUnits
 
 popCommand :: (MonadState Game m) => m Command
 popCommand = undefined
@@ -62,7 +65,7 @@ popCommand = undefined
 pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
 pushUnitScore = undefined
 
-runGameInternal :: (MonadState Game m) => m ()
+runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m ()
 runGameInternal = do
   u <- popUnit
   u' <- moveUntilLocked u
