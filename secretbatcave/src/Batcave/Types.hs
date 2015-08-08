@@ -164,13 +164,14 @@ instance (Arbitrary a => Arbitrary (Vector a)) where
 
 instance (Arbitrary e) => Arbitrary (Array Cell e) where
   arbitrary = do
-    (l, h) <- boardDims
+    let l = Cell 0 0
+    h <- boardDims
     elems <- mapM (\c -> (c,) <$> arbitrary) $ range (l, h)
     pure $ array (l, h) elems
     where
-      boardDims :: Gen (Cell, Cell)
-      boardDims = suchThat arbitrary $ \(Cell lc lr, Cell hc hr) ->
-        hc >= lc && hr >= lr && lc >= 0 && lr >= 0
+      boardDims :: Gen Cell
+      boardDims = suchThat arbitrary $ \(Cell hc hr) ->
+        hc >= 0 && hr >= 0
 
 instance Arbitrary Cell where
   arbitrary = Cell <$> arbitrary <*> arbitrary
