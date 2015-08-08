@@ -48,7 +48,13 @@ runGame problem us cs =
   in unitScores $ execState runGameInternal initialGameState
 
 popUnit :: (MonadState Game m) => m Unit
-popUnit = undefined
+popUnit = do
+  state <- get
+  case source state of
+    (u:us) -> do
+      put $ state {source = us}
+      return u
+    [] -> undefined
 
 popCommand :: (MonadState Game m) => m Command
 popCommand = undefined
