@@ -20,7 +20,6 @@ import qualified Data.Text as T
 -- | overall game state
 data Game = Game {
       source     :: [Unit] -- ^ all coming units, relative coordinates
-    , movingUnit :: Unit -- ^ Absolute coordinates
     , board      :: Board -- Board state
     -- , history -- we probably want that at some point
     , cmds       :: [Command] -- ^ all remaining commands for the game
@@ -37,8 +36,16 @@ data UnitScore = UnitScore {
 
 data EndOfGame = OutOfUnits | OutOfCommands
 
-runGame :: [Unit] -> [Command] -> [UnitScore]
-runGame = undefined
+runGame :: Problem -> [Unit] -> [Command] -> [UnitScore]
+runGame problem us cs =
+  let
+    initialGameState = Game {
+      source = us
+    , board = initialBoard problem
+    , cmds = cs
+    , unitScores = []
+    }
+  in undefined
 
 popUnit :: (MonadState Game m) => m Unit
 popUnit = undefined
@@ -51,7 +58,7 @@ pushUnitScore = undefined
 
 runGameInternal :: (MonadState Game m) => m ()
 runGameInternal = do
-  u <- movingUnit <$> get
+  u <- popUnit
   u' <- moveUntilLocked u
   lockPiece u'
   lines_scored <- clearLines
@@ -59,6 +66,7 @@ runGameInternal = do
     usSize = V.length $ unitMembers u,
     usLines = lines_scored
   }
+  runGameInternal
 
 -- | Locks a piece into place.
 -- Precondition: unitPlaceable right now.
