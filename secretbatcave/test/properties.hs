@@ -48,6 +48,12 @@ prop_rotateInverse1 u = u === (rotateUnitCW . rotateUnitCCW) u
 prop_rotateInverse2 :: Unit -> Property
 prop_rotateInverse2 u = u === (rotateUnitCCW . rotateUnitCW) u
 
+prop_rotateOrder6CW :: Unit -> Property
+prop_rotateOrder6CW u = u === (iterate rotateUnitCW u) !! 6
+
+prop_rotateOrder6CCW :: Unit -> Property
+prop_rotateOrder6CCW u = u === (iterate rotateUnitCCW u) !! 6
+
 prop_translateCommutative :: Unit -> Gen Property
 prop_translateCommutative u = do
   dir1 <- someTranslation
