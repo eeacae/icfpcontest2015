@@ -84,6 +84,7 @@ initGame' initial_board us cs =
 ------------------------------------------------------------
 
 data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
+  deriving (Eq, Show)
 
 runGame :: Game -> Game
 runGame game = flip execState game (runExceptT runGameInternal)
