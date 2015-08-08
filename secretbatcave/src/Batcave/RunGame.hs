@@ -33,7 +33,6 @@ data UnitScore = UnitScore {
     }
 
 ------------------------------------------------------------
--- moving pieces as a state monad TODO
 
 data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
 
