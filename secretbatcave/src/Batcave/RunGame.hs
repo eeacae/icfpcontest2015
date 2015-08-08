@@ -103,8 +103,11 @@ lockPiece u = modify (mapBoard $ fromJust . placeUnit u)
 -- | Scores any lines that are visible
 -- Returns # lines scored.
 clearLines :: (MonadState Game m) => m Int
-clearLines = undefined
--- TODO: use a method in Batcave.Hex to implement this
+clearLines = do
+  gamestate <- get
+  let (newBoard, lines_cleared) = clearBoard $ board gamestate
+  put $ gamestate {board = newBoard}
+  return lines_cleared
 
 -- | Moves a unit until it is locked in place.
 moveUntilLocked :: (MonadState Game m, MonadError EndOfGame m) => Unit -> m Unit
