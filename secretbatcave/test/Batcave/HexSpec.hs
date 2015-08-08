@@ -3,11 +3,11 @@
 module Batcave.HexSpec where
 
 import Control.Monad
+import Data.Array
 import System.Exit
 import Test.Hspec
 import Test.QuickCheck
 import Test.QuickCheck.Property
-import GHC.Arr (Ix(..))
 
 import Batcave.Commands
 import Batcave.Types
@@ -44,6 +44,9 @@ spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
   it "translation SE = cell distance 1" $ property prop_translateCellSouthEastDistance
   it "translation SW = cell distance 1" $ property prop_translateCellSouthWestDistance
   it "Movement commands commute" $ property prop_applyCommandCommutative
+  it "clearBoard should remove a sensible number of cells" $
+    property prop_clearBoardNumberOfCellsRemoved
+
 
 data BoardDims = BoardDims Int Int
   deriving (Eq, Show)
@@ -125,10 +128,11 @@ prop_applyCommandCommutative u c1 c2 =
   ((applyCommand c1) . (applyCommand c2)) u ===
   ((applyCommand c2) . (applyCommand c1)) u
 
-return []
-runTests = $quickCheckAll
+prop_clearBoardNumberOfCellsRemoved :: Board -> Property
+prop_clearBoardNumberOfCellsRemoved b =
+  nCells b === nCells b' + w * nLines
+  where
+  (w, _) = boardDimensions b
+  nCells board = length $ filter (==Full) $ elems board
+  (b', nLines) = clearBoard b
 
-main :: IO ()
-main = do
-  r <- runTests
-  when (not r) $ exitWith (ExitFailure 1)

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TupleSections     #-}
 module Batcave.Types where
 
 import           Control.Applicative
@@ -83,6 +84,7 @@ data Problem = Problem {
 -- | Whether a cell is full or empty.
 data CellStatus = Full | Empty
   deriving (Eq, Ord, Show)
+instance Arbitrary CellStatus where arbitrary = elements [Full, Empty]
 
 
 -- | A game board.
@@ -162,13 +164,14 @@ instance (Arbitrary a => Arbitrary (Vector a)) where
 
 instance (Arbitrary e) => Arbitrary (Array Cell e) where
   arbitrary = do
-    (l, Cell hc hr) <- boardDims
-    elems <- arbitrary `suchThat` all (inRange (l, (Cell (hc-1) (hr-1))) . fst)
-    pure $ array (l, Cell hc hr) elems
+    let l = Cell 0 0
+    h <- boardDims
+    elems <- mapM (\c -> (c,) <$> arbitrary) $ range (l, h)
+    pure $ array (l, h) elems
     where
-      boardDims :: Gen (Cell, Cell)
-      boardDims = suchThat arbitrary $ \(Cell lc lr, Cell hc hr) ->
-        hc >= lc && hr >= lr && lc >= 0 && lr >= 0
+      boardDims :: Gen Cell
+      boardDims = suchThat arbitrary $ \(Cell hc hr) ->
+        hc >= 0 && hr >= 0
 
 instance Arbitrary Cell where
   arbitrary = Cell <$> arbitrary <*> arbitrary
