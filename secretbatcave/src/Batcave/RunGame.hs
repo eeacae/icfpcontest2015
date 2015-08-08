@@ -43,38 +43,50 @@ runSolution :: Problem  -- ^ supplies board and units
             -> [T.Text] -- ^ phrases of power
             -> Int      -- ^ resulting score
 -- TODO return anything else that might be useful?
-runSolution p@Problem{..} Solution{..} phrases
-    = totalScore (runGame board source solutionCmds)
-      + scorePhrases phrases solutionCmds
-    where board | problemId /= solutionProb 
-                    = error "solution ID does not match problem ID"
-                | otherwise = initialBoard p
-          source | not (solutionSeed `elem` V.toList problemSourceSeeds)
-                     = error "solution seed not in problem"
-                 | otherwise
-                     = take problemSourceLength $
-                       unitSeq solutionSeed problemUnits
+runSolution problem solution@Solution{..} phrases
+    = totalScore (unitScores end)
+    + scorePhrases phrases solutionCmds
+  where
+    start = initGame problem solution
+    end   = runGame start
+
+------------------------------------------------------------
+
+initGame :: Problem -> Solution -> Game
+initGame p@Problem{..} Solution{..} =
+    initGame' board source solutionCmds
+  where
+    board | problemId /= solutionProb
+                = error "solution ID does not match problem ID"
+          | otherwise
+                = initialBoard p
+
+    source | not (solutionSeed `V.elem` problemSourceSeeds)
+                = error "solution seed not in problem"
+           | otherwise
+                = take problemSourceLength $
+                  unitSeq solutionSeed problemUnits
 
 unitSeq :: Int -> V.Vector Unit -> [Unit]
 unitSeq seed units = map (\i -> units V.! i) rs
     where l  = length units
           rs = map ((`mod` l) . fromIntegral) (randoms (fromIntegral seed))
 
-------------------------------------------------------------
-
-data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
-
-runGame :: Board -> [Unit] -> [Command] -> [UnitScore]
-runGame initial_board us cs =
-  let
-    initialGameState = Game {
+initGame' :: Board -> [Unit] -> [Command] -> Game
+initGame' initial_board us cs =
+    Game {
       source = us
     , board = initial_board
     , cmds = cs
     , unitScores = []
     }
-  in unitScores $
-    flip execState initialGameState $ runExceptT runGameInternal
+
+------------------------------------------------------------
+
+data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
+
+runGame :: Game -> Game
+runGame game = flip execState game (runExceptT runGameInternal)
 
 -- | Get the next unit from the queue.
 popUnit :: (MonadState Game m, MonadError EndOfGame m) => m Unit
