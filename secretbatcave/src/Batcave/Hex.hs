@@ -40,6 +40,19 @@ data Unit = Unit {
 -- | Identifies a cell, either on the board or within a unit.
 type Cell = (Int, Int)
 
+-- | Identifies a cell in terms of a hexagonal coordinate grid system.
+-- (0, 0) corresponds to the board's (0, 0).
+-- (e, se) denotes e steps east, then se steps southest, from the board's (0,0).
+newtype AbsoluteCell = AbsoluteCell (Int, Int)
+
+toAbs :: Cell -> AbsoluteCell
+toAbs (x, y) = AbsoluteCell (x - (y `div` 2), y)
+
+fromAbs :: AbsoluteCell -> Cell
+fromAbs (AbsoluteCell (e, se)) = (e + (se `div` 2), se)
+
+-- TODO: QuickCheck that toAbs and fromAbs are inverses.
+
 -- | Whether a cell is full or empty.
 data CellStatus = Full | Empty
   deriving (Eq, Ord, Show)
@@ -84,7 +97,3 @@ unitPlaceable b u = unitInBounds b u && unitUnoccupied b u
 placeUnit :: Unit -> Board -> Maybe Board
 placeUnit u b | unitPlaceable b u = Just $ b // [(c, Full) | c <- members u]
               | otherwise         = Nothing
-
--- | Translate the members of a unit by a given offset.
-translateUnit :: Unit -> Cell -> Unit
-translateUnit u (x', y') = u { members = [(x + x', y + y') | (x, y) <- members u]}
