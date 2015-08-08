@@ -14,11 +14,35 @@ data Cubic = Cubic !Int !Int !Int
 -- | An empty board of a width @w@ and height @h@.
 emptyBoard :: Int -> Int -> Board
 emptyBoard w h = array boundingCells [(c, Empty) | c <- range boundingCells]
-  where boundingCells = (Cell 0 0, Cell w h)
+  where boundingCells = (Cell 0 0, Cell (w - 1) (h - 1))
 
 -- | Create the initial board described by a game configuration.
 initialBoard :: Problem -> Board
 initialBoard p = emptyBoard (problemWidth p) (problemHeight p) // [(c, Full) | c <- V.toList (problemFilled p)]
+
+-- | Get the width and height of a board.
+boardDimensions :: Board -> (Int, Int)
+boardDimensions b = (w + 1, h + 1)
+  where (_, Cell w h) = bounds b
+
+-- | Clear a row from a board.
+clearRow :: Int -> Board -> Board
+clearRow r b = b // ([(Cell x y, b ! (Cell x (y - 1))) | x <- xs, y <- ys] ++ [(Cell x 0, Empty) | x <- xs])
+  where (w, h) = boardDimensions b
+        xs     = [0..w - 1]
+        ys     = [1..r]
+
+-- | Test whether a row in a board is completed.
+rowCompleted :: Board -> Int -> Bool
+rowCompleted b r = all (occupied b) [Cell x r | x <- [0..w - 1]]
+  where (w, h)   = boardDimensions b
+
+-- | Clear completed rows from a board.
+clearBoard :: Board -> (Board, Int)
+clearBoard b = (b', length rs)
+  where (w, h) = boardDimensions b
+        rs     = filter (rowCompleted b) [h - 1, h - 2..0]
+        b'     = foldr clearRow b rs
 
 -- | Test whether a cell is within the bounds of a board.
 inBounds :: Board -> Cell -> Bool
