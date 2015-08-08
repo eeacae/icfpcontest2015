@@ -16,18 +16,25 @@ import qualified Data.Text  as T
 import qualified Data.Map as Map
 import           Data.Maybe
 
+import Test.QuickCheck
+
 data CompassDirection
     = E | W | SE | SW
   deriving (Eq, Show)
+instance Arbitrary CompassDirection where arbitrary = elements [E, W, SE, SW]
 
 data RotationDirection
     = Clockwise | CounterClockwise
   deriving (Eq, Show)
+instance Arbitrary RotationDirection where
+  arbitrary = elements [Clockwise, CounterClockwise]
 
 data Command
     = Move CompassDirection
     | Rotate RotationDirection
   deriving (Eq, Show)
+instance Arbitrary Command where
+  arbitrary = oneof [Move <$> arbitrary, Rotate <$> arbitrary]
 
 -- | O(n), turn a list of commands into a String, e.g.
 --
