@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE RecordWildCards   #-}
 module Batcave.Types where
 
 import           Control.Applicative
 import           Control.Monad       (mzero)
-import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
+                                      object, (.:), (.=))
 import           Data.Array          (Array)
+import           Data.Monoid
 import           Data.Vector         (Vector)
 import           GHC.Arr             (Ix (..))
+
+import           Batcave.Commands
 
 ------------------------------------------------------------------------
 
@@ -88,6 +92,16 @@ data CellStatus = Full | Empty
 --   coordinates (column, row).
 type Board = Array Cell CellStatus
 
+------------------------------------------------------------------------
+
+-- | A solution to a particular problem case.
+data Solution = Solution
+    { solutionProb :: !Int
+    , solutionSeed :: !Int
+    , solutionTag  :: Maybe String
+    , solutionCmds :: [Command]
+    }
+  deriving (Show, Eq)
 
 ------------------------------------------------------------------------
 -- Aeson Instances
@@ -112,6 +126,12 @@ instance FromJSON Problem where
                                    <*> o .: "sourceSeeds"
     parseJSON _          = mzero
 
+instance ToJSON Solution where
+    toJSON Solution{..} = object $
+                      [ "problemId" .= solutionProb
+                      , "seed" .= solutionSeed
+                      , "solution" .= solutionCmds
+                      ] <> maybe [] (\v -> ["tag" .= v]) solutionTag
 
 ------------------------------------------------------------------------
 -- Ix Instances

@@ -11,7 +11,7 @@ import qualified Data.ByteString.Lazy        as BS
 import           Data.List
 import           Options.Applicative
 
-import           Batcave.Solutions
+import           Batcave.Types
 
 data Options = Options
     { limitTime   :: Maybe Int
@@ -21,8 +21,6 @@ data Options = Options
     , problems    :: [FilePath]
     }
   deriving (Show)
-
-data Problem = Problem
 
 parse :: Parser Options
 parse = Options
