@@ -126,7 +126,6 @@ inBounds = inRange . bounds . unBoard
 newtype GameScore = GameScore { unGameScore :: Int }
   deriving (Eq, Show, Num)
 
--- | Produce a renderable grid of current board state
 -- | A solution to a particular problem case.
 data Solution = Solution
     { solutionProb :: !Int
