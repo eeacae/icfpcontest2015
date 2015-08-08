@@ -63,13 +63,13 @@ textToCommands = T.foldr step []
 \t, \n, \r	(ignored)
 -}
 table :: Map.Map Char Char
-table = Map.fromList (zip "abcdefghijklmnopqrstuvwxyz !.012345\'" 
-                          "abbdbbaaaakllllpddkkkdkkbdlpppdbpalp")
+table = Map.fromList (zip ("abcdefghijklmnopqrstuvwxyz !.012345\'" :: [Char])
+                          ("abbdbbaaaakllllpddkkkdkkbdlpppdbpalp"  :: [Char]))
 
 -- | deals with the characters not used in commandToChar
 textToCommands' = textToCommands   -- use canonical char.s
                   . T.map replace  -- replacement as defined above
-                  . T.filter (not . (`elem` "\t\n\r")) -- remove ignored
+                  . T.filter (not . (`elem`( "\t\n\r" :: [Char]))) -- remove ignored
     where replace c = fromMaybe (error "unknown command") (Map.lookup c table)
 
 -- | replaces characters other than the ones we use in commandsToText

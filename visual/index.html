@@ -13,7 +13,6 @@
   </body>
   <script type="text/javascript" src="js/HexagonTools.js"></script>
   <script type="text/javascript" src="js/Grid.js"></script>
-  <script type="text/javascript" src="js/HexCalcs.js"></script>
   <script type="text/javascript" src="js/frames.js"></script>
   <script type="text/javascript">
     var canvas = document.getElementById("hexCanvas");
@@ -45,20 +44,31 @@
       return [ xy[0] - Math.floor((1 + xy[1]) / 2), xy[1] ]
     };
 
+    // reset grid
+    grid.Hexes.forEach(function(h) {
+      h.locked = false;
+
+      var xy = fromStupid([h.PathCoOrdX, h.PathCoOrdY]);
+      h.disabled = xy[0] >= frames.width ||
+                   xy[1] >= frames.height;
+    });
+
+    // play game
     var i = 0;
     setInterval(function() {
-      var frame = frames[i];
+      var frame = frames.frames[i];
 
       grid.Hexes.forEach(function(h) {
-        h.locked = false;
-
-        var xy = fromStupid([h.PathCoOrdX, h.PathCoOrdY]);
-        h.disabled = xy[0] >= frame.width ||
-                     xy[1] >= frame.height;
+        h.locked  = false;
+        h.current = false;
       });
 
-      frame.filled.forEach(function(xy) {
+      frame.locked.forEach(function(xy) {
         get(fromGalois(xy)).locked = true;
+      });
+
+      frame.current.forEach(function(xy) {
+        get(fromGalois(xy)).current = true;
       });
 
       grid.Hexes.forEach(function(h) {

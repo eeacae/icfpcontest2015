@@ -26,6 +26,7 @@ import qualified Data.Text as T
 -- | overall game state
 data Game = Game {
       source     :: [Unit] -- ^ all coming units, relative coordinates
+    , current    :: Maybe Unit
     , board      :: Board -- Board state
     -- , history -- we probably want that at some point
     , cmds       :: [Command] -- ^ all remaining commands for the game
@@ -86,10 +87,51 @@ initGame' :: Board -> [Unit] -> [Command] -> Game
 initGame' initial_board us cs =
     Game {
       source = us
+    , current = Nothing
     , board = initial_board
     , cmds = cs
     , unitScores = []
     }
+
+------------------------------------------------------------
+
+stepGame :: Command -> Game -> Maybe Game
+stepGame cmd game@Game{..}
+
+    -- No current unit, grab one from the source.
+    | Nothing         <- current
+    , (fresh:source') <- source
+    , spawn           <- spawnUnit fresh board
+
+    = stepGame cmd $ game { source  = source'
+                          , current = Just spawn }
+
+
+    -- Next board will be legal, so move
+    | Just _    <- nextBoard
+    , Just next <- nextUnit
+
+    = Just $ game { current = Just next }
+
+
+    -- Next board is not legal, but current board is ok, so lock
+    | Just board' <- currentBoard
+    , Nothing     <- nextBoard
+
+    = Just $ game { current = Nothing
+                  , board   = board' }
+
+
+    -- Current board in not legal, game over
+    | Nothing <- currentBoard
+
+    = Nothing
+
+  where
+    nextUnit = applyCommand cmd <$> current
+
+    currentBoard = current  >>= \u -> placeUnit u board
+    nextBoard    = nextUnit >>= \u -> placeUnit u board
 
 ------------------------------------------------------------
 

@@ -87,12 +87,18 @@ data CellStatus = Full | Empty
   deriving (Eq, Ord, Show)
 instance Arbitrary CellStatus where arbitrary = elements [Full, Empty]
 
-newtype Bounds = Bounds { unBounds :: (Cell, Cell) }
+data Bounds = Bounds !Cell !Cell
   deriving (Eq, Show)
+
+takeBounds :: Bounds -> (Cell, Cell)
+takeBounds (Bounds lo hi) = (lo, hi)
+
+makeBounds :: (Cell, Cell) -> Bounds
+makeBounds (lo, hi) = Bounds lo hi
 
 boundingCells :: Int -> Int -> Maybe Bounds
 boundingCells width height
-  | width > 0 && height > 0 = Just $ Bounds (Cell 0 0, Cell (width-1) (height-1))
+  | width > 0 && height > 0 = Just $ Bounds (Cell 0 0) (Cell (width-1) (height-1))
   | otherwise               = Nothing
 
 -- | A game board.
@@ -106,7 +112,7 @@ newtype Board = Board { unBoard :: Array Cell CellStatus }
 
 -- | An empty board of a width @w@ and height @h@.
 emptyBoard :: Bounds -> Board
-emptyBoard (Bounds b) = Board $ array b [(c, Empty) | c <- range b]
+emptyBoard b = Board $ array (takeBounds b) [(c, Empty) | c <- range (takeBounds b)]
 
 (%//) :: Board -> [(Cell, CellStatus)] -> Board
 (%//) (Board b) cs = Board $ b // cs
@@ -118,6 +124,10 @@ emptyBoard (Bounds b) = Board $ array b [(c, Empty) | c <- range b]
 boardDimensions :: Board -> (Int, Int)
 boardDimensions (Board b) = (w + 1, h + 1)
   where (_, Cell w h) = bounds b
+
+-- | Get the bounds of a board.
+boardBounds :: Board -> Bounds
+boardBounds = makeBounds . bounds . unBoard
 
 -- | Test whether a cell is within the bounds of a board.
 inBounds :: Board -> Cell -> Bool
