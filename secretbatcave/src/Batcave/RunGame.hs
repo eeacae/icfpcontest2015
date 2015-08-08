@@ -45,7 +45,7 @@ runGame problem us cs =
     , cmds = cs
     , unitScores = []
     }
-  in undefined
+  in unitScores $ execState runGameInternal initialGameState
 
 popUnit :: (MonadState Game m) => m Unit
 popUnit = undefined
