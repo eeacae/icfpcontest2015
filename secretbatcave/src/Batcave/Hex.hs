@@ -1,6 +1,8 @@
 module Batcave.Hex where
 
 import           Data.Array
+import           Data.Char (toUpper)
+import           Data.List (intersperse)
 import qualified Data.Vector as V
 
 import           Batcave.Commands
@@ -153,3 +155,70 @@ applyCommand (Move SE) = translateUnitSouthEast
 applyCommand (Move SW) = translateUnitSouthWest
 applyCommand (Rotate Clockwise) = rotateUnitCW
 applyCommand (Rotate CounterClockwise) = rotateUnitCCW
+
+------------------------------------------------------------------------
+-- Utilities to render the current game state
+
+-- | Renders a RenderGrid as a string.
+--
+--   Empty cells are marked with "o", full ones with "x".
+--   Cells that are part of the unit are marked with "u".
+--   The pivot is marked by capitalizing the letter in the pivot cell.
+--
+--   eg. to try it out in ghci:
+--     > import Batcave.Hex
+--     > import Batcave.Types
+--     > import qualified Data.Vector as V
+--     > let u = Unit (V.fromList [Cell 1 0]) (Cell 0 0)
+--     > let b = emptyBoard 5 3
+--     > renderBoard 5 3 b u
+--     O u o o o
+--      o o o o o
+--     o o o o o
+instance Show RenderGrid where
+  show (RenderGrid w h p c) =
+    let cellChar x = case c ! x of
+          RState Full  -> 'x'
+          RState Empty -> 'o'
+          RUnit        -> 'u'
+        cellPChar x = if x == p then toUpper (cellChar x) else cellChar x
+        row r       = map (flip Cell r) [ 0 .. (w-1) ]
+        indent r    = if r `mod` 2 == 0 then "" else " "
+        strRow r    = indent r ++ (intersperse ' ' $ map cellPChar (row r))
+    in unlines $ map strRow [0 .. (h-1)]
+
+-- | Grid to show the game state
+data RenderGrid = RenderGrid {
+    renderGridWidth  :: !Int
+  , renderGridHeight :: !Int
+  , renderGridPivot  :: !Cell
+  , renderGridCells  :: Array Cell RenderCell
+  }
+
+-- | Status of a cell for rendering
+data RenderCell = RState CellStatus  -- ^ full or empty cell, or...
+                | RUnit              -- ^ part of the unit
+
+-- | Produce a renderable grid of current board state
+renderBoard :: Int         -- ^ width of board
+            -> Int         -- ^ height of board
+            -> Board       -- ^ board
+            -> Unit        -- ^ unit
+            -> RenderGrid  -- ^ simple renderable representation
+renderBoard w h b u = RenderGrid
+  { renderGridWidth  = w
+  , renderGridHeight = h
+  , renderGridPivot  = unitPivot u
+  , renderGridCells  = listArray (bounds b) $ fmap (cellToRenderCell b u) (indices b)
+  }
+
+-- | Finds the value of a RenderCell given a board and unit.
+cellToRenderCell :: Board       -- ^ board describing full / empty cells
+                 -> Unit        -- ^ current unit
+                 -> Cell        -- ^ cell coordinates
+                 -> RenderCell  -- ^ render cell
+cellToRenderCell b u c
+  | inUnit    = RUnit
+  | otherwise = RState occupy
+  where occupy = b ! c
+        inUnit = V.elem c (unitMembers u)
