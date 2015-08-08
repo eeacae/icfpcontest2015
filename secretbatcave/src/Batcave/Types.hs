@@ -2,11 +2,12 @@
 
 module Batcave.Types where
 
-import Control.Monad (mzero)
-import Data.Aeson (FromJSON(..), Value(..), (.:))
-import Data.Array (Array)
-import Data.Vector (Vector)
-import GHC.Arr (Ix(..))
+import           Control.Applicative
+import           Control.Monad       (mzero)
+import           Data.Aeson          (FromJSON (..), Value (..), (.:))
+import           Data.Array          (Array)
+import           Data.Vector         (Vector)
+import           GHC.Arr             (Ix (..))
 
 ------------------------------------------------------------------------
 
@@ -32,7 +33,7 @@ data Unit = Unit {
     unitMembers :: !(Vector Cell)
 
     -- | The rotation point of the unit.
-  , unitPivot :: !Cell
+  , unitPivot   :: !Cell
 
   } deriving (Eq, Ord, Show)
 
@@ -43,7 +44,7 @@ data Unit = Unit {
 data Problem = Problem {
 
     -- | A unique number identifying the problem.
-    problemId :: !Int
+    problemId           :: !Int
 
     -- | The various unit configurations that may appear in this game.
     --   There might be multiple entries for the same unit.
@@ -51,22 +52,22 @@ data Problem = Problem {
     --   When a unit is spawned, it will start off in the orientation
     --   specified in this field.
     --
-  , problemUnits :: !(Vector Unit)
+  , problemUnits        :: !(Vector Unit)
 
     -- | The number of cells in a row.
-  , problemWidth :: !Int
+  , problemWidth        :: !Int
 
     -- | The number of rows on the board.
-  , problemHeight :: !Int
+  , problemHeight       :: !Int
 
     -- | Which cells start filled.
-  , problemFilled :: !(Vector Cell)
+  , problemFilled       :: !(Vector Cell)
 
     -- | How many units in the source.
   , problemSourceLength :: !Int
 
     -- | How to generate the source and how many games to play.
-  , problemSourceSeeds :: !(Vector Int)
+  , problemSourceSeeds  :: !(Vector Int)
 
   } deriving (Eq, Ord, Show)
 
