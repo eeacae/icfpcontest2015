@@ -133,12 +133,12 @@ prop_applyCommandCommutative u c1 c2 =
   ((applyCommand c2) . (applyCommand c1)) u
 
 prop_clearBoardNumberOfCellsRemoved :: Board -> Property
-prop_clearBoardNumberOfCellsRemoved b =
+prop_clearBoardNumberOfCellsRemoved (Board b) =
   nCells b === nCells b' + w * nLines
   where
-  (w, _) = boardDimensions b
+  (w, _) = boardDimensions (Board b)
   nCells board = length $ filter (==Full) $ elems board
-  (b', nLines) = clearBoard b
+  (Board b', nLines) = clearBoard (Board b)
 
 prop_clearBoardIdempotent :: Board -> Property
 prop_clearBoardIdempotent b =
@@ -148,8 +148,7 @@ prop_clearBoardIdempotent b =
 
 prop_clearBoardWhenFull :: Gen Property
 prop_clearBoardWhenFull = do
-  w <- getPositive <$> arbitrary
-  h <- getPositive <$> arbitrary
-  let boundingCells = (Cell 0 0, Cell (w - 1) (h - 1))
-  let full = array boundingCells [(c, Full) | c <- range boundingCells]
-  return $ (emptyBoard w h, h) === clearBoard full
+  b <- arbitrary
+  let (_, h) = boundDimensions b
+  let full = Board $ array (unBounds b) [(c, Full) | c <- range (unBounds b)]
+  return $ (emptyBoard b, h) === (clearBoard full)

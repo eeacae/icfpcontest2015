@@ -101,6 +101,9 @@ boundingCells width height
   | width > 0 && height > 0 = Just $ Bounds (Cell 0 0) (Cell (width-1) (height-1))
   | otherwise               = Nothing
 
+boundDimensions :: Bounds -> (Int, Int)
+boundDimensions (Bounds (_, Cell w h)) = (w+1, h+1)
+
 -- | A game board.
 --
 --   The game board consists of hexagonal cells arranged in rows, with the
@@ -109,6 +112,7 @@ boundingCells width height
 --   row is numbered 0, thus each cell may be identified by a pair of
 --   coordinates (column, row).
 newtype Board = Board { unBoard :: Array Cell CellStatus }
+  deriving (Eq, Show)
 
 -- | An empty board of a width @w@ and height @h@.
 emptyBoard :: Bounds -> Board
@@ -202,16 +206,16 @@ instance Ix Cell where
 instance (Arbitrary a => Arbitrary (Vector a)) where
   arbitrary = V.fromList <$> arbitrary
 
-instance (Arbitrary e) => Arbitrary (Array Cell e) where
+instance Arbitrary Bounds where
+  arbitrary = (Bounds . (Cell 0 0,))
+    <$> (suchThat arbitrary $ \(Cell hc hr) ->
+      hc >= 0 && hr >= 0)
+
+instance Arbitrary Board where
   arbitrary = do
-    let l = Cell 0 0
-    h <- boardDims
+    (l, h) <- unBounds <$> arbitrary
     elems <- mapM (\c -> (c,) <$> arbitrary) $ range (l, h)
-    pure $ array (l, h) elems
-    where
-      boardDims :: Gen Cell
-      boardDims = suchThat arbitrary $ \(Cell hc hr) ->
-        hc >= 0 && hr >= 0
+    pure . Board $ array (l, h) elems
 
 instance Arbitrary Cell where
   arbitrary = Cell <$> arbitrary <*> arbitrary
