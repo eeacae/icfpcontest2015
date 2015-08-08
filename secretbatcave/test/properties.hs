@@ -7,6 +7,7 @@ import System.Exit
 import Test.QuickCheck
 import GHC.Arr (Ix(..))
 
+import Batcave.Commands
 import Batcave.Types
 import Batcave.Hex
 
@@ -36,6 +37,16 @@ prop_translateSE u = translateUnitSouthEast u === (translateUnitSouthWest . tran
 -- SW == SE + W
 prop_translateSW :: Unit -> Property
 prop_translateSW u = translateUnitSouthWest u === (translateUnitSouthEast . translateUnitWest) u
+
+prop_translateCommutative :: Unit -> Gen Property
+prop_translateCommutative u = do
+  dir1 <- someTranslation
+  dir2 <- someTranslation
+  return $ (dir1 . dir2) u === (dir2 . dir1) u
+  where
+  someTranslation = elements [translateUnitWest, translateUnitEast, translateUnitSouthWest, translateUnitSouthEast]
+--  return (applyCommand (Move dir1) . applyCommand (Move dir2)) u ===
+--    (applyCommand (Move dir2) . applyCommand (Move dir1)) u
 
 return []
 runTests = $quickCheckAll
