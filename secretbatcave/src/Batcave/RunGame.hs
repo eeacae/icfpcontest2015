@@ -8,6 +8,7 @@ import Batcave.Hex
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
+import Data.Maybe
 import qualified Data.Vector as V
 
 import Data.List
@@ -59,10 +60,12 @@ runGameInternal = do
     usLines = lines_scored
   }
 
-
 -- | Locks a piece into place.
+-- Precondition: unitPlaceable right now.
+-- WARNING: pattern match fail otherwise!
 lockPiece :: (MonadState Game m) => Unit -> m ()
-lockPiece u = modify undefined
+lockPiece u = modify (mapBoard $ fromJust . placeUnit u)
+  where mapBoard f gamestate = gamestate {board = f $ board gamestate}
 
 -- | Scores any lines that are visible
 -- Returns # lines scored.
@@ -72,6 +75,7 @@ clearLines = undefined
 -- Moves a unit until it is locked in place.
 moveUntilLocked :: (MonadState Game m) => Unit -> m Unit
 moveUntilLocked unit = do
+  -- precondition: unitPlaceable right now.
   b <- board <$> get
   c <- popCommand
   let unit' = move c unit
