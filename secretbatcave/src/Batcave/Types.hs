@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards   #-}
 module Batcave.Types where
 
@@ -159,12 +160,15 @@ instance Ix Cell where
 instance (Arbitrary a => Arbitrary (Vector a)) where
   arbitrary = V.fromList <$> arbitrary
 
-instance (Num i, Arbitrary i, Arbitrary e, Ix i) => Arbitrary (Array i e) where
+instance (Arbitrary e) => Arbitrary (Array Cell e) where
   arbitrary = do
-    w <- arbitrary
-    h <- arbitrary
-    elems <- arbitrary `suchThat` all (inRange (w-1,h-1) . fst)
-    pure $ array (w,h) elems
+    (l, Cell hc hr) <- boardDims
+    elems <- arbitrary `suchThat` all (inRange (l, (Cell (hc-1) (hr-1))) . fst)
+    pure $ array (l, Cell hc hr) elems
+    where
+      boardDims :: Gen (Cell, Cell)
+      boardDims = suchThat arbitrary $ \(Cell lc lr, Cell hc hr) ->
+        hc >= lc && hr >= lr && lc >= 0 && lr >= 0
 
 instance Arbitrary Cell where
   arbitrary = Cell <$> arbitrary <*> arbitrary
