@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-MAX_PROBLEM=23
+MAX_PROBLEM=24
 PROBLEM_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 for PROBLEM_ID in $(seq 0 $MAX_PROBLEM); do
