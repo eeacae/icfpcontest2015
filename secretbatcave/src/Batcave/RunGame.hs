@@ -4,6 +4,7 @@ module Batcave.RunGame where
 import Batcave.Types
 import Batcave.Commands
 import Batcave.Hex
+import Batcave.Random
 
 import Control.Applicative
 import Control.Monad.Except
@@ -13,6 +14,8 @@ import qualified Data.Vector as V
 import Data.Void
 
 import Data.List
+import Data.Word
+
 
 import qualified Data.Text as T
 
@@ -31,6 +34,31 @@ data UnitScore = UnitScore {
       usSize  :: Int -- ^ size of the scoring unit
     , usLines :: Int -- ^ lines removed with this unit score 
     }
+
+------------------------------------------------------------
+-- running a problem and a matching solution
+
+runSolution :: Problem  -- ^ supplies board and units
+            -> Solution -- ^ supplies seed and commands
+            -> [T.Text] -- ^ phrases of power
+            -> Int      -- ^ resulting score
+-- TODO return anything else that might be useful?
+runSolution p@Problem{..} Solution{..} phrases
+    = totalScore (runGame board source solutionCmds)
+      + scorePhrases phrases solutionCmds
+    where board | problemId /= solutionProb 
+                    = error "solution ID does not match problem ID"
+                | otherwise = initialBoard p
+          source | not (solutionSeed `elem` V.toList problemSourceSeeds)
+                     = error "solution seed not in problem"
+                 | otherwise
+                     = take problemSourceLength $
+                       unitSeq solutionSeed problemUnits
+
+unitSeq :: Int -> V.Vector Unit -> [Unit]
+unitSeq seed units = map (\i -> units V.! i) rs
+    where l  = length units
+          rs = map ((`mod` l) . fromIntegral) (randoms (fromIntegral seed))
 
 ------------------------------------------------------------
 
