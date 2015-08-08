@@ -7,6 +7,7 @@ module Batcave.Commands
     RotationDirection(..),
     Command(..),
     canonicalizeCommand,
+    textToCommands',
     commandsToText
 ) where
 
