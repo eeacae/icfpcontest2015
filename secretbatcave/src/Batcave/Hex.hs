@@ -3,6 +3,7 @@ module Batcave.Hex where
 import           Data.Array
 import qualified Data.Vector as V
 
+import           Batcave.Commands
 import           Batcave.Types
 
 ------------------------------------------------------------------------
@@ -144,3 +145,11 @@ rotateUnitCW u = mapUnit (rotateCellCW $ unitPivot u) u
 -- | Rotate a Unit counter clockwise
 rotateUnitCCW :: Unit -> Unit
 rotateUnitCCW u = mapUnit (rotateCellCCW $ unitPivot u) u
+
+applyCommand :: Command -> Unit -> Unit
+applyCommand (Move E) = translateUnitEast
+applyCommand (Move W) = translateUnitWest
+applyCommand (Move SE) = translateUnitSouthEast
+applyCommand (Move SW) = translateUnitSouthWest
+applyCommand (Rotate Clockwise) = rotateUnitCW
+applyCommand (Rotate CounterClockwise) = rotateUnitCCW
