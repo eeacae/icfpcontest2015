@@ -89,6 +89,11 @@ cubicToCell (Cubic x y z) = Cell col row
   where col = x + (z - (abs z `mod` 2)) `div` 2
         row = z
 
+-- | Calculate the distance between Cubics
+cubicDistance :: Cubic -> Cubic -> Int
+cubicDistance (Cubic x y z) (Cubic x' y' z') =
+  (abs (x - x') + abs (y - y') + abs (z - z')) `div` 2
+
 -- | Translate a Cubic 1 space East
 translateCubicEast :: Cubic -> Cubic
 translateCubicEast (Cubic x y z) = Cubic (x + 1) (y - 1) z
@@ -126,6 +131,10 @@ rotateCubicCCW centre@(Cubic x' y' z') cell@(Cubic x y z) = Cubic (x' + x'') (y'
 -- | Perform operation on a Cell via a conversion to Cubic.
 cubicOp :: (Cubic -> Cubic) -> Cell -> Cell
 cubicOp f = cubicToCell . f . cellToCubic
+
+-- | Calculate the distance between Cells
+cellDistance :: Cell -> Cell -> Int
+cellDistance c d = cubicDistance (cellToCubic c) (cellToCubic d)
 
 -- | Translate a Cell 1 space East
 translateCellEast :: Cell -> Cell
