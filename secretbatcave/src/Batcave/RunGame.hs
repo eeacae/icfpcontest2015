@@ -47,10 +47,9 @@ runGame problem us cs =
     , unitScores = []
     }
   in unitScores $
-    flip execState initialGameState $
-    runExceptT $
-    runGameInternal
+    flip execState initialGameState $ runExceptT runGameInternal
 
+-- | Get the next unit from the queue.
 popUnit :: (MonadState Game m, MonadError EndOfGame m) => m Unit
 popUnit = do
   state <- get
@@ -60,6 +59,7 @@ popUnit = do
       return u
     [] -> throwError OutOfUnits
 
+-- | Get the next command from the queue.
 popCommand :: (MonadState Game m, MonadError EndOfGame m) => m Command
 popCommand = do
   state <- get
@@ -69,17 +69,19 @@ popCommand = do
       return c
     [] -> throwError OutOfCommands
 
+-- | Record the score data for the current unit.
 pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
 pushUnitScore uScore =
     modify (\g -> g{unitScores = uScore : unitScores g})
 
+-- | Runs the game within the monad until running out of commands/units.
 runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m Void
 runGameInternal = do
   u <- popUnit
   u' <- moveUntilLocked u
   lockPiece u'
   lines_scored <- clearLines
-  pushUnitScore $ UnitScore {
+  pushUnitScore UnitScore {
     usSize = V.length $ unitMembers u,
     usLines = lines_scored
   }
@@ -96,8 +98,9 @@ lockPiece u = modify (mapBoard $ fromJust . placeUnit u)
 -- Returns # lines scored.
 clearLines :: (MonadState Game m) => m Int
 clearLines = undefined
+-- TODO: use a method in Batcave.Hex to implement this
 
--- Moves a unit until it is locked in place.
+-- | Moves a unit until it is locked in place.
 moveUntilLocked :: (MonadState Game m, MonadError EndOfGame m) => Unit -> m Unit
 moveUntilLocked unit = do
   -- precondition: unitPlaceable right now.
@@ -121,10 +124,10 @@ move_score = points + line_bonus
                 then floor ((ls_old - 1) * points / 10)
                 else 0
 -}
-move_score :: (Int, Int)    -- ^ accumulator, last line count
+moveScore :: (Int, Int)    -- ^ accumulator, last line count
               -> UnitScore  -- ^ current scoring 
               -> (Int, Int) -- ^ accumulator, lines counted
-move_score (acc, usLines_prev) UnitScore{..}
+moveScore (acc, usLines_prev) UnitScore{..}
     = (acc + points + line_bonus, usLines)
   where points      = usSize
                          + 50 * (1 + ls) * ls
@@ -170,6 +173,6 @@ scorePhrases :: [T.Text]   -- ^ list of phrases (18 at most)
 scorePhrases ps cs = sum (zipWith powerScore (map T.length ps) counts)
     where cs'    = commandsToText cs
           ps'    = map canonicalizeCommand ps
-          counts = map (\p -> T.count p cs') ps'
+          counts = map (`T.count` cs') ps'
           -- This is inefficient (multiple traversals). Maybe OK?
 
