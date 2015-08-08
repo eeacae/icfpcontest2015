@@ -80,14 +80,14 @@ spawnUnit u b = mapUnit shift u
     bxMid = bxMin + (bxMax - bxMin) `div` 2
     uxMid = uxMin + (uxMax - uxMin) `div` 2
 
-    (Cell bxMin byMin, Cell bxMax byMax) = bounds b
-    (Cell uxMin uyMin, Cell uxMax uyMax) = unitBounds u
+    Bounds (Cell bxMin byMin) (Cell bxMax byMax) = boardBounds b
+    Bounds (Cell uxMin uyMin) (Cell uxMax uyMax) = unitBounds u
 
 -- | Find the bounds of a unit.
-unitBounds :: Unit -> (Cell, Cell)
+unitBounds :: Unit -> Bounds
 unitBounds Unit{..}
     | V.null unitMembers = error "unitBounds: unit had no members"
-    | otherwise          = (unitMin, unitMax)
+    | otherwise          = Bounds unitMin unitMax
   where
     unitMin = V.foldl1' (merge min) unitMembers
     unitMax = V.foldl1' (merge max) unitMembers
