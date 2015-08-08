@@ -21,7 +21,10 @@ positiveInt :: Gen Int
 positiveInt = arbitrary `suchThat` (> 0)
 
 validCell :: BoardDims -> Gen Cell
-validCell (BoardDims w h) = suchThat arbitrary (inRange (Cell 0 0, Cell (w-1) (h-1)))
+validCell (BoardDims w h) = do
+  x <- choose (0, w-1)
+  y <- choose (0, h-1)
+  pure $ Cell x y
 
 prop_emptyBoardNotOccupied :: BoardDims -> Property
 prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c ->
