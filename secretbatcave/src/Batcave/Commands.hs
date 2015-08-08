@@ -5,12 +5,16 @@ module Batcave.Commands
 (
     CompassDirection(..),
     RotationDirection(..),
-    Command(..)
+    Command(..),
+    canonicalizeCommand,
+    commandsToText
 ) where
 
 import           Data.Aeson
 import           Data.Text  (Text)
 import qualified Data.Text  as T
+import qualified Data.Map as Map
+import           Data.Maybe
 
 data CompassDirection
     = E | W | SE | SW
@@ -40,6 +44,31 @@ textToCommands :: Text -> [Command]
 textToCommands = T.foldr step []
   where
     step x xs = charToCommand x : xs
+
+{- | deals with the characters not used in commandToChar
+{p, ', !, ., 0, 3}	move W
+{b, c, e, f, y, 2}	move E
+{a, g, h, i, j, 4}	move SW
+{l, m, n, o, space, 5}    	move SE
+{d, q, r, v, z, 1}	rotate clockwise
+{k, s, t, u, w, x}	rotate counter-clockwise
+\t, \n, \r	(ignored)
+-}
+table :: Map.Map Char Char
+table = Map.fromList (zip "abcdefghijklmnopqrstuvwxyz !.012345\'" 
+                          "abbdbbaaaakllllpddkkkdkkbdlpppdbpalp")
+
+-- | deals with the characters not used in commandToChar
+textToCommands' = textToCommands   -- use canonical char.s
+                  . T.map replace  -- replacement as defined above
+                  . T.filter (not . (`elem` "\t\n\r")) -- remove ignored
+    where replace c = fromMaybe (error "unknown command") (Map.lookup c table)
+
+-- | replaces characters other than the ones we use in commandsToText
+-- by the used ones (by converting back and forth)
+canonicalizeCommand :: T.Text -> T.Text
+canonicalizeCommand = commandsToText . textToCommands'
+
 
 -- | Maps a command to just one of the possible single character
 -- representations
