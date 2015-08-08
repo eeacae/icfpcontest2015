@@ -29,6 +29,14 @@ prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c -
 prop_cellCubicInvariance :: Cell -> Property
 prop_cellCubicInvariance c = c === (cubicToCell . cellToCubic) c
 
+-- SE == SW + E
+prop_translateSE :: Unit -> Property
+prop_translateSE u = translateUnitSouthEast u === (translateUnitSouthWest . translateUnitEast) u
+
+-- SW == SE + W
+prop_translateSW :: Unit -> Property
+prop_translateSW u = translateUnitSouthWest u === (translateUnitSouthEast . translateUnitWest) u
+
 return []
 runTests = $quickCheckAll
 
