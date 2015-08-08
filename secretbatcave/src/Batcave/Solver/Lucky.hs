@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards, OverloadedStrings #-}
 
-module Batcave.Util where
+module Batcave.Solver.Lucky (solve) where
 
 import           Batcave.Types
 import           Batcave.Commands
@@ -11,8 +11,8 @@ import qualified Data.Text   as T
 -- | a somewhat-random solution that drops pieces downwards and hopes to
 -- fill a line by chance at some point. Only considers the max width
 -- of units and the board dimensions
-iFeelLucky :: Problem -> Solution
-iFeelLucky p@Problem{..} =
+solve :: Problem -> Solution
+solve p@Problem{..} =
     Solution { solutionProb = problemId
              , solutionSeed = seed 
              , solutionTag = Just $ "lucky-" ++ show (problemId, seed)
@@ -50,4 +50,3 @@ cellX :: Cell -> Int
 cellX (Cell x _) = x
 cellY :: Cell -> Int
 cellY (Cell _ y) = y
-
