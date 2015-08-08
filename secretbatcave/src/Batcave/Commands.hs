@@ -36,6 +36,11 @@ commandsToText cmds = T.unfoldrN (length cmds) step cmds
     step (x:xs) = Just (commandToChar x, xs)
     step [] = Nothing
 
+textToCommands :: Text -> [Command]
+textToCommands = T.foldr step []
+  where
+    step x xs = charToCommand x : xs
+
 -- | Maps a command to just one of the possible single character
 -- representations
 commandToChar :: Command -> Char
@@ -46,6 +51,21 @@ commandToChar (Move SE)                 = 'l'
 commandToChar (Rotate Clockwise)        = 'd'
 commandToChar (Rotate CounterClockwise) = 'k'
 
+-- | Inverse of charToCommand, partial; we assume that we are operating under
+-- the image of commandToChar.
+charToCommand :: Char -> Command
+charToCommand 'p' = Move W
+charToCommand 'b' = Move E
+charToCommand 'a' = Move SW
+charToCommand 'l' = Move SE
+charToCommand 'd' = Rotate Clockwise
+charToCommand 'k' = Rotate CounterClockwise
+charToCommand x   = error $ "unknown character while decoding Command: " ++ [x]
+
 instance ToJSON [Command] where
-  toJSON = String . commandsToText
+    toJSON = String . commandsToText
+
+instance FromJSON [Command] where
+    parseJSON (String txt) = return $ textToCommands txt
+    parseJSON _            = fail "Expected String when decoding Commands"
 
