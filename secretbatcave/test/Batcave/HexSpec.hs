@@ -46,7 +46,10 @@ spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
   it "Movement commands commute" $ property prop_applyCommandCommutative
   it "clearBoard should remove a sensible number of cells" $
     property prop_clearBoardNumberOfCellsRemoved
-
+  it "clearBoard should be idempotent" $
+    property prop_clearBoardIdempotent
+  it "clearBoard should empty full boards" $
+    property prop_clearBoardWhenFull
 
 data BoardDims = BoardDims Int Int
   deriving (Eq, Show)
@@ -136,3 +139,16 @@ prop_clearBoardNumberOfCellsRemoved b =
   nCells board = length $ filter (==Full) $ elems board
   (b', nLines) = clearBoard b
 
+prop_clearBoardIdempotent :: Board -> Property
+prop_clearBoardIdempotent b =
+  afterClear b === (afterClear . afterClear) b
+  where
+  afterClear = fst . clearBoard
+
+prop_clearBoardWhenFull :: Gen Property
+prop_clearBoardWhenFull = do
+  w <- getPositive <$> arbitrary
+  h <- getPositive <$> arbitrary
+  let boundingCells = (Cell 0 0, Cell (w - 1) (h - 1))
+  let full = array boundingCells [(c, Full) | c <- range boundingCells]
+  return $ (emptyBoard w h, h) === clearBoard full
