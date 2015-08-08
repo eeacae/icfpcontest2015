@@ -108,6 +108,11 @@ prop_rotateUnitCWCCWInverse u = u === (rotateUnitCCW $ rotateUnitCW u)
 prop_rotateUnitCCWCWInverse :: Unit -> Property
 prop_rotateUnitCCWCWInverse u = u === (rotateUnitCW $ rotateUnitCCW u)
 
+prop_applyCommandCommutative :: Unit -> Command -> Command -> Property
+prop_applyCommandCommutative u c1 c2 =
+  ((applyCommand c1) . (applyCommand c2)) u ===
+  ((applyCommand c2) . (applyCommand c1)) u
+
 return []
 runTests = $quickCheckAll
 
