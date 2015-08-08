@@ -3,6 +3,7 @@ module Batcave.Random
     ) where
 
 import Data.Word (Word32)
+import Data.Bits
 
 ------------------------------------------------------------------------
 
@@ -14,7 +15,8 @@ import Data.Word (Word32)
 randoms :: Word32 -> [Word32]
 randoms = map mask . lcg
   where
-    mask x = (x `div` 65536) `mod` 32768
+    mask x = (x `shiftR` 16) .&. 0x7FFF
+          -- (x `div` 65536) `mod` 32768
 
 lcg :: Word32 -> [Word32]
 lcg seed = seed : lcg next
