@@ -34,6 +34,26 @@ prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c -
 prop_cellCubicInvariance :: Cell -> Property
 prop_cellCubicInvariance c = c === (cubicToCell . cellToCubic) c
 
+-- SE == SW + E
+prop_translateSE :: Unit -> Property
+prop_translateSE u = translateUnitSouthEast u === (translateUnitSouthWest . translateUnitEast) u
+
+-- SW == SE + W
+prop_translateSW :: Unit -> Property
+prop_translateSW u = translateUnitSouthWest u === (translateUnitSouthEast . translateUnitWest) u
+
+prop_rotateInverse1 :: Unit -> Property
+prop_rotateInverse1 u = u === (rotateUnitCW . rotateUnitCCW) u
+
+prop_rotateInverse2 :: Unit -> Property
+prop_rotateInverse2 u = u === (rotateUnitCCW . rotateUnitCW) u
+
+prop_rotateOrder6CW :: Unit -> Property
+prop_rotateOrder6CW u = u === (iterate rotateUnitCW u) !! 6
+
+prop_rotateOrder6CCW :: Unit -> Property
+prop_rotateOrder6CCW u = u === (iterate rotateUnitCCW u) !! 6
+
 prop_translateCommutative :: Unit -> Gen Property
 prop_translateCommutative u = do
   dir1 <- someTranslation
@@ -107,6 +127,11 @@ prop_rotateUnitCWCCWInverse u = u === (rotateUnitCCW $ rotateUnitCW u)
 
 prop_rotateUnitCCWCWInverse :: Unit -> Property
 prop_rotateUnitCCWCWInverse u = u === (rotateUnitCW $ rotateUnitCCW u)
+
+prop_applyCommandCommutative :: Unit -> Command -> Command -> Property
+prop_applyCommandCommutative u c1 c2 =
+  ((applyCommand c1) . (applyCommand c2)) u ===
+  ((applyCommand c2) . (applyCommand c1)) u
 
 return []
 runTests = $quickCheckAll
