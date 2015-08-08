@@ -6,13 +6,14 @@ import           Control.Applicative
 import           Control.Monad       (mzero)
 import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
                                       object, (.:), (.=))
-import           Data.Array          (Array)
+import qualified Data.Vector as V
+import           Data.Array          (Array, array)
 import           Data.Monoid
 import           Data.Vector         (Vector)
 import           GHC.Arr             (Ix (..))
 
 import           Batcave.Commands
-
+import           Test.QuickCheck
 ------------------------------------------------------------------------
 
 -- | Identifies a cell, either on the board or within a unit.
@@ -92,8 +93,6 @@ data CellStatus = Full | Empty
 --   coordinates (column, row).
 type Board = Array Cell CellStatus
 
-------------------------------------------------------------------------
-
 -- | A solution to a particular problem case.
 data Solution = Solution
     { solutionProb :: !Int
@@ -153,3 +152,22 @@ instance Ix Cell where
     inRange (Cell l1 l2, Cell u1 u2) (Cell i1 i2) =
          inRange (l1, u1) i1
       && inRange (l2, u2) i2
+
+------------------------------------------------------------------------
+-- Arbitrary instances
+
+instance (Arbitrary a => Arbitrary (Vector a)) where
+  arbitrary = V.fromList <$> arbitrary
+
+instance (Num i, Arbitrary i, Arbitrary e, Ix i) => Arbitrary (Array i e) where
+  arbitrary = do
+    w <- arbitrary
+    h <- arbitrary
+    elems <- arbitrary `suchThat` all (inRange (w-1,h-1) . fst)
+    pure $ array (w,h) elems
+ 
+instance Arbitrary Cell where
+  arbitrary = Cell <$> arbitrary <*> arbitrary
+
+instance Arbitrary Unit where
+  arbitrary = Unit <$> arbitrary <*> arbitrary
