@@ -115,11 +115,13 @@ stepGame cmd game@Game{..}
 
 
     -- Next board is not legal, but current board is ok, so lock
-    | Just board' <- currentBoard
-    , Nothing     <- nextBoard
+    | Nothing             <- nextBoard
+    , Just (board', rows) <- clearBoard <$> currentBoard
+    , Just score          <- unitScore rows <$> current
 
-    = Just $ game { current = Nothing
-                  , board   = board' }
+    = Just $ game { current    = Nothing
+                  , board      = board'
+                  , unitScores = score : unitScores }
 
 
     -- Current board in not legal, game over
@@ -132,6 +134,11 @@ stepGame cmd game@Game{..}
 
     currentBoard = current  >>= \u -> placeUnit u board
     nextBoard    = nextUnit >>= \u -> placeUnit u board
+
+    unitScore rows unit = UnitScore {
+          usSize  = V.length (unitMembers unit)
+        , usLines = rows
+        }
 
 ------------------------------------------------------------
 

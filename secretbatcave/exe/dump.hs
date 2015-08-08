@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main (main) where
 
@@ -12,8 +13,8 @@ import           Data.Monoid ((<>))
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
 
+import           Batcave.RunGame (Game(..), initGame, stepGame, currentGameScore)
 import qualified Batcave.Solver.Lucky as Lucky
-import           Batcave.RunGame (Game(..), initGame, stepGame)
 import           Batcave.Types
 
 ------------------------------------------------------------------------
@@ -37,23 +38,22 @@ encodeFrames solve problem@Problem{..} =
   where
     solution@Solution{..} = solve problem
 
-    frames = V.map encodeBoard
-           . fst
-           . V.foldl' runStep (V.singleton (board game0, current game0), Just game0)
-           . V.fromList
-           $ solutionCmds
+    frames = V.map encodeGame
+           $ V.unfoldr runStep (game0, commands)
+
+    commands = V.fromList solutionCmds
 
     game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solution)
 
-    runStep (bs, game1) cmd =
-      case stepGame cmd =<< game1 of
-        Just game2 -> (bs `V.snoc` (board game2, current game2), Just game2)
-        Nothing    -> (bs, Nothing)
+    runStep (game1, cmds)
+        | V.null cmds = Nothing
+        | otherwise   = (\g -> (g, (g, V.tail cmds))) <$> stepGame (V.head cmds) game1
 
-encodeBoard :: (Board, Maybe Unit) -> A.Value
-encodeBoard (board, current) =
+encodeGame :: Game -> A.Value
+encodeGame game@Game{..} =
     A.object [ "locked"  .= fromBoard board
-             , "current" .= fromMaybe V.empty (fromCurrent <$> current) ]
+             , "current" .= fromMaybe V.empty (fromCurrent <$> current)
+             , "score"   .= takeScore game ]
   where
     fromBoard = V.fromList
               . mapMaybe full
@@ -62,6 +62,9 @@ encodeBoard (board, current) =
 
     fromCurrent = V.map coord
                 . unitMembers
+
+    takeScore = unGameScore
+              . currentGameScore
 
     full (cell, Full) = Just (coord cell)
     full _            = Nothing

@@ -6,9 +6,15 @@
       body {
         background: #000;
       }
+
+      h1 {
+        font: 16px consolas;
+        color: #fff;
+      }
     </style>
   </head>
   <body>
+    <h1>Score: <span id="score">0</span></h1>
     <canvas id="hexCanvas" width="3000" height="3000" style="width:1500px;height:1500px;" />
   </body>
   <script type="text/javascript" src="js/HexagonTools.js"></script>
@@ -57,6 +63,8 @@
     var i = 0;
     setInterval(function() {
       var frame = frames.frames[i];
+
+      document.getElementById("score").innerHTML = frame.score;
 
       grid.Hexes.forEach(function(h) {
         h.locked  = false;
