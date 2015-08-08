@@ -23,7 +23,7 @@ data Game = Game {
     , board      :: Board -- Board state
     -- , history -- we probably want that at some point
     , cmds       :: [Command] -- ^ all remaining commands for the game
-    , unitScores :: [UnitScore] -- ^ for final scoring
+    , unitScores :: [UnitScore] -- ^ for final scoring, leftmost==newest
     }
 
 data UnitScore = UnitScore {
@@ -69,7 +69,8 @@ popCommand = do
     [] -> throwError OutOfCommands
 
 pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
-pushUnitScore = undefined
+pushUnitScore uScore =
+    modify (\g -> g{unitScores = uScore : unitScores g})
 
 runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m ()
 runGameInternal = do
@@ -138,9 +139,9 @@ totalScore :: [UnitScore] -> Int
 totalScore = fst . foldl' move_score (0,0)
 
 -- | score for a game (can be called any time during running it if
--- required
+-- required) Note that unitScores are built right-to-left
 currentGameScore :: Game -> Int
-currentGameScore Game{..} = totalScore unitScores
+currentGameScore Game{..} = totalScore (reverse unitScores)
 
 -- power phrase score for a sequence of commands
 {-
