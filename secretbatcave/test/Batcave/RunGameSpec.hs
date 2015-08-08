@@ -18,6 +18,7 @@ prop_moveUntilLocked_returns_placeable = do
   commands <- arbitrary
   let game = Game {
     source = [],
+    current = Nothing,
     board = b,
     cmds = commands,
     unitScores = []

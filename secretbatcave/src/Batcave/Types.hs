@@ -102,7 +102,7 @@ boundingCells width height
   | otherwise               = Nothing
 
 boundDimensions :: Bounds -> (Int, Int)
-boundDimensions (Bounds (_, Cell w h)) = (w+1, h+1)
+boundDimensions (Bounds _ (Cell w h)) = (w+1, h+1)
 
 -- | A game board.
 --
@@ -207,13 +207,13 @@ instance (Arbitrary a => Arbitrary (Vector a)) where
   arbitrary = V.fromList <$> arbitrary
 
 instance Arbitrary Bounds where
-  arbitrary = (Bounds . (Cell 0 0,))
+  arbitrary = (Bounds (Cell 0 0))
     <$> (suchThat arbitrary $ \(Cell hc hr) ->
       hc >= 0 && hr >= 0)
 
 instance Arbitrary Board where
   arbitrary = do
-    (l, h) <- unBounds <$> arbitrary
+    (Bounds l h) <- arbitrary
     elems <- mapM (\c -> (c,) <$> arbitrary) $ range (l, h)
     pure . Board $ array (l, h) elems
 

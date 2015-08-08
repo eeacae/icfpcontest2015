@@ -150,5 +150,5 @@ prop_clearBoardWhenFull :: Gen Property
 prop_clearBoardWhenFull = do
   b <- arbitrary
   let (_, h) = boundDimensions b
-  let full = Board $ array (unBounds b) [(c, Full) | c <- range (unBounds b)]
+  let full = Board $ array (takeBounds b) [(c, Full) | c <- range (takeBounds b)]
   return $ (emptyBoard b, h) === (clearBoard full)
