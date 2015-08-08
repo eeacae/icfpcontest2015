@@ -63,6 +63,7 @@ popUnit = do
 positionUnit :: (MonadState Game m, MonadError EndOfGame m) =>
   Unit -> m Unit
 positionUnit = undefined
+-- TODO: use a method in Batcave.Hex to implement this.
 
 -- | Get the next command from the queue.
 popCommand :: (MonadState Game m, MonadError EndOfGame m) => m Command
