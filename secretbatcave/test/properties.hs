@@ -45,8 +45,6 @@ prop_translateCommutative u = do
   return $ (dir1 . dir2) u === (dir2 . dir1) u
   where
   someTranslation = elements [translateUnitWest, translateUnitEast, translateUnitSouthWest, translateUnitSouthEast]
---  return (applyCommand (Move dir1) . applyCommand (Move dir2)) u ===
---    (applyCommand (Move dir2) . applyCommand (Move dir1)) u
 
 return []
 runTests = $quickCheckAll
