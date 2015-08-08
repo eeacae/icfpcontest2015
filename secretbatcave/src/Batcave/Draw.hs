@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -9,23 +10,34 @@ import Diagrams.Backend.SVG
 import Data.Array
 
 import Batcave.Types
+import qualified Data.Vector as V
 
-drawCell :: Cell -> CellStatus -> Diagram B
-drawCell (Cell x y) s = translate (V2 x' y') $ label <> cell
+translateCell (Cell x y) = translate (V2 x' y')
     where
-        cell   = rotateBy (1/12) $ hexagon 1 # fc colour
         x'     = width * fromIntegral x + offset
         y'     = negate $ fromIntegral y * 3 / 4 * height
         offset = if even y then 0 else width / 2
         width  = sqrt 3 / 2 * height
         height = 2
-        label  = scale 0.5 $ text $ show x ++ "," ++ show y
-        colour = case s of
-                    Full  -> yellow
-                    Empty -> white
 
+drawCell' :: Cell -> Colour Double -> Diagram B
+drawCell' c@(Cell x y) colour = translateCell c $ label <> cell
+    where
+        cell   = rotateBy (1/12) $ hexagon 1 # fc colour
+        label  = scale 0.5 $ text $ show x ++ "," ++ show y
+
+drawCell :: Cell -> CellStatus -> Diagram B
+drawCell c Empty = drawCell' c white
+drawCell c Full = drawCell' c yellow
+
+drawUnit :: Unit -> Diagram B
+drawUnit Unit{..} = translateCell unitPivot (circle 0.7) # lc red
+                    <> (V.foldl1' (<>) (V.map (flip drawCell' green) unitMembers))
 drawBoard :: Board -> Diagram B
 drawBoard b = mconcat $ map (uncurry drawCell) $ assocs b
+
+-- You can render units ontop of boards and they should match up.
+-- renderSVG "test.svg" (mkWidth 400) $ drawUnit unit <> drawBoard board
 
 exampleBoard = array (Cell 0 0, Cell 3 4)
                 [ (Cell 0 0, Empty)
