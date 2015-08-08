@@ -1,9 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Main where
+module Batcave.HexSpec where
 
 import Control.Monad
 import System.Exit
+import Test.Hspec
 import Test.QuickCheck
 import Test.QuickCheck.Property
 import GHC.Arr (Ix(..))
@@ -11,6 +12,38 @@ import GHC.Arr (Ix(..))
 import Batcave.Commands
 import Batcave.Types
 import Batcave.Hex
+
+spec :: Spec
+spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
+  it "Empty board should be unoccupied" $ property $
+    \dims@(BoardDims w h) ->
+      forAll (validCell dims) $ \c ->
+        (occupied (emptyBoard w h) c) === False
+  it "Conversion in and out of cubic is idempotent" $ property $
+    \c -> c === (cubicToCell . cellToCubic) c
+  it "unit translation SE = SW + E" $ property prop_translateUnitTriangleSouthEast
+  it "unit translation SW = SE + W" $ property prop_translateUnitTriangleSouthWest
+  it "unit translation E + W = id" $ property prop_translateUnitEastWestInverse
+  it "unit translation W + E = id" $ property prop_translateUnitWestEastInverse
+  it "unit rotation CCW then CW = id" $ property $ prop_rotateUnitCCWCWInverse
+  it "unit rotation CW then CCW = id" $ property $ prop_rotateUnitCWCCWInverse
+  it "unit rotation CW 6 times = id" $ property prop_rotateOrder6CW
+  it "unit rotation CCW 6 times = id" $ property prop_rotateOrder6CCW
+  it "cell rotation CW/CCW is inverse" $ property prop_rotateCellCWCCWInverse
+  it "cell rotation CW/CCW is inverse" $ property prop_rotateCellCCWCWInverse
+  it "distance to pivot invariant under cell rotation " $
+    property prop_rotateCellCWDistance
+  it "distance to pivot invariant under cell rotation " $
+    property prop_rotateCellCCWDistance
+  it "cell distance is a metric space" $ property prop_cellDistanceNonNegative
+  it "cell distance is a metric space" $ property prop_cellDistanceIdentity
+  it "cell distance is a metric space" $ property prop_cellDistanceCommutative
+  it "cell distance is a metric space" $ property prop_cellDistanceTriangle
+  it "translation E = cell distance 1" $ property prop_translateCellEastDistance
+  it "translation W = cell distance 1" $ property prop_translateCellWestDistance
+  it "translation SE = cell distance 1" $ property prop_translateCellSouthEastDistance
+  it "translation SW = cell distance 1" $ property prop_translateCellSouthWestDistance
+  it "Movement commands commute" $ property prop_applyCommandCommutative
 
 data BoardDims = BoardDims Int Int
   deriving (Eq, Show)
@@ -27,40 +60,11 @@ validCell (BoardDims w h) = do
   y <- choose (0, h-1)
   pure $ Cell x y
 
-prop_emptyBoardNotOccupied :: BoardDims -> Property
-prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c ->
-  (occupied (emptyBoard w h) c) === False
-
-prop_cellCubicInvariance :: Cell -> Property
-prop_cellCubicInvariance c = c === (cubicToCell . cellToCubic) c
-
--- SE == SW + E
-prop_translateSE :: Unit -> Property
-prop_translateSE u = translateUnitSouthEast u === (translateUnitSouthWest . translateUnitEast) u
-
--- SW == SE + W
-prop_translateSW :: Unit -> Property
-prop_translateSW u = translateUnitSouthWest u === (translateUnitSouthEast . translateUnitWest) u
-
-prop_rotateInverse1 :: Unit -> Property
-prop_rotateInverse1 u = u === (rotateUnitCW . rotateUnitCCW) u
-
-prop_rotateInverse2 :: Unit -> Property
-prop_rotateInverse2 u = u === (rotateUnitCCW . rotateUnitCW) u
-
 prop_rotateOrder6CW :: Unit -> Property
 prop_rotateOrder6CW u = u === (iterate rotateUnitCW u) !! 6
 
 prop_rotateOrder6CCW :: Unit -> Property
 prop_rotateOrder6CCW u = u === (iterate rotateUnitCCW u) !! 6
-
-prop_translateCommutative :: Unit -> Gen Property
-prop_translateCommutative u = do
-  dir1 <- someTranslation
-  dir2 <- someTranslation
-  return $ (dir1 . dir2) u === (dir2 . dir1) u
-  where
-  someTranslation = elements [translateUnitWest, translateUnitEast, translateUnitSouthWest, translateUnitSouthEast]
 
 prop_cellDistanceNonNegative :: Cell -> Cell -> Property
 prop_cellDistanceNonNegative c d = (cellDistance c d >= 0) === True
@@ -85,18 +89,6 @@ prop_translateCellSouthEastDistance c = cellDistance c (translateCellSouthEast c
 
 prop_translateCellSouthWestDistance :: Cell -> Property
 prop_translateCellSouthWestDistance c = cellDistance c (translateCellSouthWest c) === 1
-
-prop_translateCellEastWestInverse :: Cell -> Property
-prop_translateCellEastWestInverse c = c === (translateCellWest $ translateCellEast c)
-
-prop_translateCellWestEastInverse :: Cell -> Property
-prop_translateCellWestEastInverse c = c === (translateCellEast $ translateCellWest c)
-
-prop_translateCellTriangleSouthEast :: Cell -> Property
-prop_translateCellTriangleSouthEast c = translateCellSouthEast c === (translateCellSouthWest $ translateCellEast c)
-
-prop_translateCellTriangleSouthWest :: Cell -> Property
-prop_translateCellTriangleSouthWest c = translateCellSouthWest c === (translateCellSouthEast $ translateCellWest c)
 
 prop_rotateCellCWCCWInverse :: Cell -> Cell -> Property
 prop_rotateCellCWCCWInverse c d = c === (rotateCellCCW d $ rotateCellCW d c)
