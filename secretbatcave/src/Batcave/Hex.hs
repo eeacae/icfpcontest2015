@@ -13,23 +13,15 @@ import           Batcave.Types
 -- | A hexagonal cubic coordinate
 data Cubic = Cubic !Int !Int !Int
 
--- | An empty board of a width @w@ and height @h@.
-emptyBoard :: Int -> Int -> Board
-emptyBoard w h = array boundingCells [(c, Empty) | c <- range boundingCells]
-  where boundingCells = (Cell 0 0, Cell (w - 1) (h - 1))
-
 -- | Create the initial board described by a game configuration.
-initialBoard :: Problem -> Board
-initialBoard p = emptyBoard (problemWidth p) (problemHeight p) // [(c, Full) | c <- V.toList (problemFilled p)]
-
--- | Get the width and height of a board.
-boardDimensions :: Board -> (Int, Int)
-boardDimensions b = (w + 1, h + 1)
-  where (_, Cell w h) = bounds b
-
+initialBoard :: Problem -> Maybe Board
+initialBoard p = (flip (%//) filled . emptyBoard)  <$> bounds
+ where 
+  bounds = boundingCells (problemWidth p) (problemHeight p)
+  filled = [(c, Full) | c <- V.toList (problemFilled p)]
 -- | Clear a row from a board.
 clearRow :: Int -> Board -> Board
-clearRow r b = b // ([(Cell x y, b ! (Cell x (y - 1))) | x <- xs, y <- ys] ++ [(Cell x 0, Empty) | x <- xs])
+clearRow r b = b %// ([(Cell x y, b %! (Cell x (y - 1))) | x <- xs, y <- ys] ++ [(Cell x 0, Empty) | x <- xs])
   where (w, h) = boardDimensions b
         xs     = [0..w - 1]
         ys     = [1..r]
@@ -46,17 +38,13 @@ clearBoard b = (b', length rs)
         rs     = filter (rowCompleted b) [h - 1, h - 2..0]
         b'     = foldr clearRow b rs
 
--- | Test whether a cell is within the bounds of a board.
-inBounds :: Board -> Cell -> Bool
-inBounds = inRange . bounds
-
 -- | Test whether all of the members of a unit are within the bounds of a board.
 unitInBounds :: Board -> Unit -> Bool
 unitInBounds b u = all (inBounds b) $ unitMembers u
 
 -- | Test whether a cell is occupied on a board.
 occupied :: Board -> Cell -> Bool
-occupied b c = b ! c == Full
+occupied b c = b %! c == Full
 
 -- | Test whether all of the members of a unit are unoccupied.
 unitUnoccupied :: Board -> Unit -> Bool
@@ -75,7 +63,7 @@ mapUnit f u = u {
 
 -- | Place a unit on a board. Return @Nothing@ if the placement is invalid.
 placeUnit :: Unit -> Board -> Maybe Board
-placeUnit u b | unitPlaceable b u = Just $ b // [(c, Full) | c <- V.toList (unitMembers u)]
+placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- V.toList (unitMembers u)]
               | otherwise         = Nothing
 
 -- | Convert a Cell to a Cubic. Taken from <http://www.redblobgames.com/grids/hexagons/>
@@ -243,11 +231,11 @@ renderBoard :: Int         -- ^ width of board
             -> Board       -- ^ board
             -> Unit        -- ^ unit
             -> RenderGrid  -- ^ simple renderable representation
-renderBoard w h b u = RenderGrid
+renderBoard w h (Board b) u = RenderGrid
   { renderGridWidth  = w
   , renderGridHeight = h
   , renderGridPivot  = unitPivot u
-  , renderGridCells  = listArray (bounds b) $ fmap (cellToRenderCell b u) (indices b)
+  , renderGridCells  = listArray (bounds b) $ fmap (cellToRenderCell (Board b) u) (indices b)
   }
 
 -- | Finds the value of a RenderCell given a board and unit.
@@ -258,5 +246,5 @@ cellToRenderCell :: Board       -- ^ board describing full / empty cells
 cellToRenderCell b u c
   | inUnit    = RUnit
   | otherwise = RState occupy
-  where occupy = b ! c
+  where occupy = b %! c
         inUnit = V.elem c (unitMembers u)

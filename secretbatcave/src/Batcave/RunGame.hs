@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleContexts, RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Batcave.RunGame where
 
 import Batcave.Types
@@ -16,7 +18,7 @@ import Data.Void
 import Data.List
 import Data.Word
 
-
+import           Data.Text (Text)
 import qualified Data.Text as T
 
 -- types to run the game
@@ -30,6 +32,9 @@ data Game = Game {
     , unitScores :: [UnitScore] -- ^ for final scoring, leftmost==newest
     }
 
+data GameError = InvalidProblem Text
+  deriving (Eq, Show)
+
 data UnitScore = UnitScore {
       usSize  :: Int -- ^ size of the scoring unit
     , usLines :: Int -- ^ lines removed with this unit score 
@@ -41,31 +46,36 @@ data UnitScore = UnitScore {
 runSolution :: Problem  -- ^ supplies board and units
             -> Solution -- ^ supplies seed and commands
             -> [T.Text] -- ^ phrases of power
-            -> Int      -- ^ resulting score
+            -> Either GameError GameScore
 -- TODO return anything else that might be useful?
 runSolution problem solution@Solution{..} phrases
-    = totalScore (unitScores end)
-    + scorePhrases phrases solutionCmds
+    = (Right . score . runGame) =<< start
   where
+    score end = GameScore $
+        totalScore (unitScores end)
+      + scorePhrases phrases solutionCmds
+
     start = initGame problem solution
-    end   = runGame start
 
 ------------------------------------------------------------
 
-initGame :: Problem -> Solution -> Game
-initGame p@Problem{..} Solution{..} =
-    initGame' board source solutionCmds
+initGame :: Problem -> Solution -> Either GameError Game
+initGame p@Problem{..} Solution{..} = do
+    b <- board
+    Right $ initGame' b source solutionCmds
   where
     board | problemId /= solutionProb
-                = error "solution ID does not match problem ID"
+                = flail "solution ID does not match problem ID"
           | otherwise
-                = initialBoard p
+                = maybe (flail "Invalid board size") Right (initialBoard p)
 
     source | not (solutionSeed `V.elem` problemSourceSeeds)
                 = error "solution seed not in problem"
            | otherwise
                 = take problemSourceLength $
                   unitSeq solutionSeed problemUnits
+
+    flail = Left . InvalidProblem
 
 unitSeq :: Int -> V.Vector Unit -> [Unit]
 unitSeq seed units = map (\i -> units V.! i) rs
@@ -194,8 +204,8 @@ totalScore = fst . foldl' moveScore (0,0)
 
 -- | score for a game (can be called any time during running it if
 -- required) Note that unitScores are built right-to-left
-currentGameScore :: Game -> Int
-currentGameScore Game{..} = totalScore (reverse unitScores)
+currentGameScore :: Game -> GameScore
+currentGameScore Game{..} = GameScore $ totalScore (reverse unitScores)
 
 -- power phrase score for a sequence of commands
 {-

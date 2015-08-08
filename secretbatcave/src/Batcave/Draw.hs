@@ -34,7 +34,7 @@ drawUnit :: Unit -> Diagram B
 drawUnit Unit{..} = translateCell unitPivot (circle 0.7) # lc red
                     <> (V.foldl1' (<>) (V.map (flip drawCell' green) unitMembers))
 drawBoard :: Board -> Diagram B
-drawBoard b = mconcat $ map (uncurry drawCell) $ assocs b
+drawBoard (Board b) = mconcat $ map (uncurry drawCell) $ assocs b
 
 -- You can render units ontop of boards and they should match up.
 -- renderSVG "test.svg" (mkWidth 400) $ drawUnit unit <> drawBoard board

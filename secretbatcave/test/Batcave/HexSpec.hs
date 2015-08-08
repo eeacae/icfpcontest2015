@@ -2,6 +2,7 @@
 
 module Batcave.HexSpec where
 
+import Data.Maybe
 import Control.Monad
 import Data.Array
 import System.Exit
@@ -18,7 +19,7 @@ spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
   it "Empty board should be unoccupied" $ property $
     \dims@(BoardDims w h) ->
       forAll (validCell dims) $ \c ->
-        (occupied (emptyBoard w h) c) === False
+        (occupied (emptyBoard . fromJust $ boundingCells w h) c) === False
   it "Conversion in and out of cubic is idempotent" $ property $
     \c -> c === (cubicToCell . cellToCubic) c
   it "unit translation SE = SW + E" $ property prop_translateUnitTriangleSouthEast

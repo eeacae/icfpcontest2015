@@ -1,7 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Batcave.Types where
 
 import           Control.Applicative
@@ -9,7 +10,7 @@ import           Control.Monad       (mzero)
 import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
                                       object, (.:), (.=))
 import qualified Data.Vector as V
-import           Data.Array          (Array, array)
+import           Data.Array
 import           Data.Monoid
 import           Data.Vector         (Vector)
 import           GHC.Arr             (Ix (..))
@@ -86,6 +87,13 @@ data CellStatus = Full | Empty
   deriving (Eq, Ord, Show)
 instance Arbitrary CellStatus where arbitrary = elements [Full, Empty]
 
+newtype Bounds = Bounds { unBounds :: (Cell, Cell) }
+  deriving (Eq, Show)
+
+boundingCells :: Int -> Int -> Maybe Bounds
+boundingCells width height
+  | width > 0 && height > 0 = Just $ Bounds (Cell 0 0, Cell (width-1) (height-1))
+  | otherwise               = Nothing
 
 -- | A game board.
 --
@@ -94,7 +102,29 @@ instance Arbitrary CellStatus where arbitrary = elements [Full, Empty]
 --   vertices up and down, and edges to the left and right. The first cell in a
 --   row is numbered 0, thus each cell may be identified by a pair of
 --   coordinates (column, row).
-type Board = Array Cell CellStatus
+newtype Board = Board { unBoard :: Array Cell CellStatus }
+
+-- | An empty board of a width @w@ and height @h@.
+emptyBoard :: Bounds -> Board
+emptyBoard (Bounds b) = Board $ array b [(c, Empty) | c <- range b]
+
+(%//) :: Board -> [(Cell, CellStatus)] -> Board
+(%//) (Board b) cs = Board $ b // cs
+
+(%!) :: Board -> Cell -> CellStatus
+(%!) (Board b) c = b ! c
+
+-- | Get the width and height of a board.
+boardDimensions :: Board -> (Int, Int)
+boardDimensions (Board b) = (w + 1, h + 1)
+  where (_, Cell w h) = bounds b
+
+-- | Test whether a cell is within the bounds of a board.
+inBounds :: Board -> Cell -> Bool
+inBounds = inRange . bounds . unBoard
+
+newtype GameScore = GameScore { unGameScore :: Int }
+  deriving (Eq, Show, Num)
 
 -- | A solution to a particular problem case.
 data Solution = Solution
