@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>foo</title>
+    <style>
+      body {
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="hexCanvas" width="3000" height="3000" style="width:1500px;height:1500px;" />
+  </body>
+  <script type="text/javascript" src="js/HexagonTools.js"></script>
+  <script type="text/javascript" src="js/Grid.js"></script>
+  <script type="text/javascript" src="js/HexCalcs.js"></script>
+  <script type="text/javascript" src="js/frames.js"></script>
+  <script type="text/javascript">
+    var canvas = document.getElementById("hexCanvas");
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 3000, 3000);
+
+    HT.Hexagon.Static.ORIENTATION = HT.Hexagon.Orientation.Rotated;
+    HT.Hexagon.Static.HEIGHT      = 50;
+    HT.Hexagon.Static.WIDTH       = 45;
+    HT.Hexagon.Static.SIDE        = HT.Hexagon.Static.HEIGHT / 2;
+
+    var grid = new HT.Grid(3000, 3000);
+
+    var get = function(xy) {
+      for (var h in grid.Hexes) {
+        if (grid.Hexes[h].PathCoOrdX === xy[0] &&
+            grid.Hexes[h].PathCoOrdY === xy[1]) {
+          return grid.Hexes[h];
+        }
+      }
+      return null;
+    };
+
+    var fromGalois = function(xy) {
+      return [ xy[0] + Math.floor((1 + xy[1]) / 2), xy[1] ]
+    };
+
+    var fromStupid = function(xy) {
+      return [ xy[0] - Math.floor((1 + xy[1]) / 2), xy[1] ]
+    };
+
+    var i = 0;
+    setInterval(function() {
+      var frame = frames[i];
+
+      grid.Hexes.forEach(function(h) {
+        h.locked = false;
+
+        var xy = fromStupid([h.PathCoOrdX, h.PathCoOrdY]);
+        h.disabled = xy[0] >= frame.width ||
+                     xy[1] >= frame.height;
+      });
+
+      frame.filled.forEach(function(xy) {
+        get(fromGalois(xy)).locked = true;
+      });
+
+      grid.Hexes.forEach(function(h) {
+        h.draw(ctx);
+      });
+
+      i++;
+    }, 100);
+
+  </script>
+</html>
