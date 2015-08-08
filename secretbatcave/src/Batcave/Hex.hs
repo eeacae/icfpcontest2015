@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Batcave.Hex where
 
 import           Data.Array
@@ -65,6 +67,32 @@ mapUnit f u = u {
 placeUnit :: Unit -> Board -> Maybe Board
 placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- V.toList (unitMembers u)]
               | otherwise         = Nothing
+
+-- | Move a unit to the location it would be spawned on the given board.
+spawnUnit :: Unit -> Board -> Unit
+spawnUnit u b = mapUnit shift u
+  where
+    shift (Cell x y) = Cell (x + xShift) (y + yShift)
+
+    xShift = bxMid - uxMid
+    yShift = -uyMin
+
+    bxMid = bxMin + (bxMax - bxMin) `div` 2
+    uxMid = uxMin + (uxMax - uxMin) `div` 2
+
+    (Cell bxMin byMin, Cell bxMax byMax) = bounds b
+    (Cell uxMin uyMin, Cell uxMax uyMax) = unitBounds u
+
+-- | Find the bounds of a unit.
+unitBounds :: Unit -> (Cell, Cell)
+unitBounds Unit{..}
+    | V.null unitMembers = error "unitBounds: unit had no members"
+    | otherwise          = (unitMin, unitMax)
+  where
+    unitMin = V.foldl1' (merge min) unitMembers
+    unitMax = V.foldl1' (merge max) unitMembers
+
+    merge op (Cell x0 y0) (Cell x1 y1) = Cell (op x0 x1) (op y0 y1)
 
 -- | Convert a Cell to a Cubic. Taken from <http://www.redblobgames.com/grids/hexagons/>
 cellToCubic :: Cell -> Cubic
