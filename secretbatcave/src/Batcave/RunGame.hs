@@ -59,8 +59,14 @@ popUnit = do
       return u
     [] -> throwError OutOfUnits
 
-popCommand :: (MonadState Game m) => m Command
-popCommand = undefined
+popCommand :: (MonadState Game m, MonadError EndOfGame m) => m Command
+popCommand = do
+  state <- get
+  case cmds state of
+    (c:cs) -> do
+      put $ state {cmds = cs}
+      return c
+    [] -> throwError OutOfCommands
 
 pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
 pushUnitScore = undefined
@@ -90,7 +96,7 @@ clearLines :: (MonadState Game m) => m Int
 clearLines = undefined
 
 -- Moves a unit until it is locked in place.
-moveUntilLocked :: (MonadState Game m) => Unit -> m Unit
+moveUntilLocked :: (MonadState Game m, MonadError EndOfGame m) => Unit -> m Unit
 moveUntilLocked unit = do
   -- precondition: unitPlaceable right now.
   b <- board <$> get
