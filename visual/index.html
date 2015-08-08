@@ -15,7 +15,7 @@
   </head>
   <body>
     <h1>Score: <span id="score">0</span></h1>
-    <canvas id="hexCanvas" width="3000" height="3000" style="width:1500px;height:1500px;" />
+    <canvas id="hexCanvas" width="5000" height="5000" style="width:2500px;height:2500px;" />
   </body>
   <script type="text/javascript" src="js/HexagonTools.js"></script>
   <script type="text/javascript" src="js/Grid.js"></script>
@@ -23,14 +23,14 @@
   <script type="text/javascript">
     var canvas = document.getElementById("hexCanvas");
     var ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 3000, 3000);
+    ctx.clearRect(0, 0, 5000, 5000);
 
     HT.Hexagon.Static.ORIENTATION = HT.Hexagon.Orientation.Rotated;
     HT.Hexagon.Static.HEIGHT      = 50;
     HT.Hexagon.Static.WIDTH       = 45;
     HT.Hexagon.Static.SIDE        = HT.Hexagon.Static.HEIGHT / 2;
 
-    var grid = new HT.Grid(3000, 3000);
+    var grid = new HT.Grid(5000, 5000);
 
     var get = function(xy) {
       for (var h in grid.Hexes) {
