@@ -165,7 +165,7 @@ instance (Num i, Arbitrary i, Arbitrary e, Ix i) => Arbitrary (Array i e) where
     h <- arbitrary
     elems <- arbitrary `suchThat` all (inRange (w-1,h-1) . fst)
     pure $ array (w,h) elems
- 
+
 instance Arbitrary Cell where
   arbitrary = Cell <$> arbitrary <*> arbitrary
 
