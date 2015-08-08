@@ -8,6 +8,7 @@ import Batcave.Hex
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
+import qualified Data.Vector as V
 
 -- types to run the game
 
@@ -40,15 +41,29 @@ popUnit = undefined
 popCommand :: (MonadState Game m) => m Command
 popCommand = undefined
 
+pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
+pushUnitScore = undefined
+
 runGameInternal :: (MonadState Game m) => m ()
 runGameInternal = do
   u <- movingUnit <$> get
   u' <- moveUntilLocked u
-  scoreBoard u'
+  lockPiece u'
+  lines_scored <- clearLines
+  pushUnitScore $ UnitScore {
+    usSize = V.length $ unitMembers u,
+    usLines = lines_scored
+  }
 
--- | Locks a piece into place and then scores any lines
-scoreBoard :: (MonadState Game m) => Unit -> m ()
-scoreBoard = undefined
+
+-- | Locks a piece into place.
+lockPiece :: (MonadState Game m) => Unit -> m ()
+lockPiece u = modify undefined
+
+-- | Scores any lines that are visible
+-- Returns # lines scored.
+clearLines :: (MonadState Game m) => m Int
+clearLines = undefined
 
 -- Moves a unit until it is locked in place.
 moveUntilLocked :: (MonadState Game m) => Unit -> m Unit
