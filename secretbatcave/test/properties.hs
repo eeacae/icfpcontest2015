@@ -23,7 +23,7 @@ validCell :: BoardDims -> Gen Cell
 validCell (BoardDims w h) = suchThat arbitrary (inRange (Cell 0 0, Cell (w-1) (h-1)))
 
 prop_emptyBoardNotOccupied :: BoardDims -> Property
-prop_emptyBoardNotOccupied dims@(BoardDims w h) = within 1000000 $ forAll (validCell dims) $ \c ->
+prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c ->
   (occupied (emptyBoard w h) c) === False
 
 return []
