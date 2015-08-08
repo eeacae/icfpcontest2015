@@ -35,7 +35,7 @@ data UnitScore = UnitScore {
 ------------------------------------------------------------
 -- moving pieces as a state monad TODO
 
-data EndOfGame = OutOfUnits | OutOfCommands
+data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
 
 runGame :: Problem -> [Unit] -> [Command] -> [UnitScore]
 runGame problem us cs =
@@ -59,6 +59,12 @@ popUnit = do
       return u
     [] -> throwError OutOfUnits
 
+-- | Position the unit in the top centre.
+-- Throw CantPlaceUnit if it's not placeable.
+positionUnit :: (MonadState Game m, MonadError EndOfGame m) =>
+  Unit -> m Unit
+positionUnit = undefined
+
 -- | Get the next command from the queue.
 popCommand :: (MonadState Game m, MonadError EndOfGame m) => m Command
 popCommand = do
@@ -77,7 +83,7 @@ pushUnitScore uScore =
 -- | Runs the game within the monad until running out of commands/units.
 runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m Void
 runGameInternal = do
-  u <- popUnit
+  u <- positionUnit <$> popUnit
   u' <- moveUntilLocked u
   lockPiece u'
   lines_scored <- clearLines
@@ -140,7 +146,7 @@ moveScore (acc, usLines_prev) UnitScore{..}
 
 -- | total score as a fold of a UnitScores list
 totalScore :: [UnitScore] -> Int
-totalScore = fst . foldl' move_score (0,0)
+totalScore = fst . foldl' moveScore (0,0)
 
 -- | score for a game (can be called any time during running it if
 -- required) Note that unitScores are built right-to-left
