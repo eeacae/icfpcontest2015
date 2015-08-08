@@ -26,6 +26,9 @@ prop_emptyBoardNotOccupied :: BoardDims -> Property
 prop_emptyBoardNotOccupied dims@(BoardDims w h) = forAll (validCell dims) $ \c ->
   (occupied (emptyBoard w h) c) === False
 
+prop_cellCubicInvariance :: Cell -> Property
+prop_cellCubicInvariance c = c === (cubicToCell . cellToCubic) c
+
 return []
 runTests = $quickCheckAll
 
