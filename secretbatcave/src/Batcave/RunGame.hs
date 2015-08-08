@@ -10,6 +10,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Data.Maybe
 import qualified Data.Vector as V
+import Data.Void
 
 import Data.List
 
@@ -72,7 +73,7 @@ pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
 pushUnitScore uScore =
     modify (\g -> g{unitScores = uScore : unitScores g})
 
-runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m ()
+runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m Void
 runGameInternal = do
   u <- popUnit
   u' <- moveUntilLocked u
