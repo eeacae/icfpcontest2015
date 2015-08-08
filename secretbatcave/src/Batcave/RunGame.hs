@@ -124,7 +124,7 @@ stepGame cmd game@Game{..}
                   , unitScores = score : unitScores }
 
 
-    -- Current board in not legal, game over
+    -- Current board is not legal, game over
     | Nothing <- currentBoard
 
     = Nothing
