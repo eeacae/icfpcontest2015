@@ -95,10 +95,12 @@ data Unit = Unit {
 -- | Map over the cells in a unit.
 makeUnit :: U.Vector Cell -> Cell -> Unit
 makeUnit unsorted pivot = Unit (radixSort unsorted) pivot
+{-# INLINE makeUnit #-}
 
 -- | Map over the cells in a unit.
 mapUnit :: (Cell -> Cell) -> Unit -> Unit
 mapUnit f (Unit ms p) = makeUnit (U.map f ms) p
+{-# INLINE mapUnit #-}
 
 -- | Perform a radix sort of an unboxed vector.
 radixSort :: (Unbox a, Radix a) => U.Vector a -> U.Vector a
@@ -106,6 +108,7 @@ radixSort unsorted = runST $ do
     thawed <- U.thaw unsorted
     Radix.sort thawed
     U.unsafeFreeze thawed
+{-# INLINE radixSort #-}
 
 
 ------------------------------------------------------------------------
