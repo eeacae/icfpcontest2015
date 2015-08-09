@@ -6,6 +6,7 @@ import           Batcave.Types
 import           Batcave.Commands
 
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
 import qualified Data.Text   as T
 
 -- | a somewhat-random solution that drops pieces downwards and hopes to
@@ -43,8 +44,8 @@ solve p@Problem{..} =
                               "ei! "
                        
 unitWidth :: Unit -> Int
-unitWidth Unit{..} = let xs = V.map cellX unitMembers
-                     in V.maximum xs - V.minimum xs
+unitWidth unit = let xs = U.map cellX (unitMembers unit)
+                 in U.maximum xs - U.minimum xs
 
 cellX :: Cell -> Int
 cellX (Cell x _) = x

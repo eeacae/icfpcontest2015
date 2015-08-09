@@ -1,19 +1,54 @@
-{-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies #-}
 
-module Batcave.Types where
+module Batcave.Types
+    ( Cell(..)
 
-import           Control.Applicative
+    , Unit
+    , unitMembers
+    , unitPivot
+    , makeUnit
+    , mapUnit
+    , radixSort -- should probably be in another module
+
+    , Seed(..)
+    , Problem(..)
+    , Solution(..)
+
+    , CellStatus(..)
+
+    , Bounds(..)
+    , takeBounds
+    , makeBounds
+    , boundingCells
+    , boundDimensions
+
+    , Board(..)
+    , emptyBoard
+    , (%//)
+    , (%!)
+    , boardDimensions
+    , boardBounds
+    , inBounds
+    ) where
+
 import           Control.Monad (mzero)
+import           Control.Monad.ST (runST)
 import           Data.Aeson (FromJSON(..), ToJSON(..), Value(..), object, (.:), (.=))
 import           Data.Array
 import           Data.Monoid
 import           Data.Text (Text)
-import           Data.Vector (Vector)
 import qualified Data.Vector as V
+import           Data.Vector.Algorithms.Radix (Radix(..))
+import qualified Data.Vector.Algorithms.Radix as Radix
+import           Data.Vector.Unboxed (Unbox)
+import qualified Data.Vector.Unboxed as U
+import           Data.Vector.Unboxed.Deriving (derivingUnbox)
 import           GHC.Arr (Ix (..))
 import           Control.DeepSeq(NFData(..))
 
@@ -25,6 +60,14 @@ import           Test.QuickCheck
 -- | Identifies a cell, either on the board or within a unit.
 data Cell = Cell !Int !Int
   deriving (Eq, Ord, Show)
+
+
+-- Due to Template Haskell staging limitations, this has to be before any
+-- unboxed uses of Cell.
+$(derivingUnbox "Cell"
+    [t| Cell -> (Int, Int) |]
+    [| \(Cell x y) -> (x, y) |]
+    [| \(x, y) -> (Cell x y) |])
 
 
 ------------------------------------------------------------------------
@@ -41,12 +84,28 @@ data Cell = Cell !Int !Int
 data Unit = Unit {
 
     -- | The unit members.
-    unitMembers :: !(Vector Cell)
+    unitMembers :: !(U.Vector Cell)
 
     -- | The rotation point of the unit.
   , unitPivot   :: !Cell
 
   } deriving (Eq, Ord, Show)
+
+
+-- | Map over the cells in a unit.
+makeUnit :: U.Vector Cell -> Cell -> Unit
+makeUnit unsorted pivot = Unit (radixSort unsorted) pivot
+
+-- | Map over the cells in a unit.
+mapUnit :: (Cell -> Cell) -> Unit -> Unit
+mapUnit f (Unit ms p) = makeUnit (U.map f ms) p
+
+-- | Perform a radix sort of an unboxed vector.
+radixSort :: (Unbox a, Radix a) => U.Vector a -> U.Vector a
+radixSort unsorted = runST $ do
+    thawed <- U.thaw unsorted
+    Radix.sort thawed
+    U.unsafeFreeze thawed
 
 
 ------------------------------------------------------------------------
@@ -70,7 +129,7 @@ data Problem = Problem {
     --   When a unit is spawned, it will start off in the orientation
     --   specified in this field.
     --
-  , problemUnits        :: !(Vector Unit)
+  , problemUnits        :: !(V.Vector Unit)
 
     -- | The number of cells in a row.
   , problemWidth        :: !Int
@@ -79,15 +138,26 @@ data Problem = Problem {
   , problemHeight       :: !Int
 
     -- | Which cells start filled.
-  , problemFilled       :: !(Vector Cell)
+  , problemFilled       :: !(U.Vector Cell)
 
     -- | How many units in the source.
   , problemSourceLength :: !Int
 
     -- | How to generate the source and how many games to play.
-  , problemSourceSeeds  :: !(Vector Seed)
+  , problemSourceSeeds  :: !(V.Vector Seed)
 
   } deriving (Eq, Ord, Show)
+
+
+------------------------------------------------------------------------
+
+-- | A solution to a particular problem case.
+data Solution = Solution {
+      solutionProb :: !Int
+    , solutionSeed :: !Seed
+    , solutionTag  :: !(Maybe Text)
+    , solutionCmds :: ![Command]
+    } deriving (Show, Eq)
 
 
 ------------------------------------------------------------------------
@@ -147,18 +217,6 @@ boardBounds = makeBounds . bounds . unBoard
 inBounds :: Board -> Cell -> Bool
 inBounds = inRange . bounds . unBoard
 
-newtype GameScore = GameScore { unGameScore :: Int }
-  deriving (Eq, Show, Num)
-
-------------------------------------------------------------------------
-
--- | A solution to a particular problem case.
-data Solution = Solution {
-      solutionProb :: !Int
-    , solutionSeed :: !Seed
-    , solutionTag  :: !(Maybe Text)
-    , solutionCmds :: ![Command]
-    } deriving (Show, Eq)
 
 instance NFData Solution where
     rnf Solution{..} = rnf solutionCmds `seq`
@@ -196,7 +254,7 @@ instance ToJSON Solution where
                       ] <> maybe [] (\v -> ["tag" .= v]) solutionTag
 
 ------------------------------------------------------------------------
--- Ix Instances
+-- Ix instances
 
 instance Ix Cell where
     {-# INLINE range #-}
@@ -216,11 +274,34 @@ instance Ix Cell where
          inRange (l1, u1) i1
       && inRange (l2, u2) i2
 
+
+------------------------------------------------------------------------
+-- Radix instances
+
+instance Radix Cell where
+    {-# INLINE passes #-}
+    passes _ = passes (undefined :: Int) * 2
+
+    {-# INLINE size #-}
+    size   _ = size (undefined :: Int)
+
+    -- NOTE: This will sort such that y has priority over x.
+    --       This ordering is by default more useful to solvers.
+    {-# INLINE radix #-}
+    radix k (Cell x y) | k < half  = radix k x
+                       | otherwise = radix (k - half) y
+      where
+        half = passes (undefined :: Int)
+
+
 ------------------------------------------------------------------------
 -- Arbitrary instances
 
-instance (Arbitrary a => Arbitrary (Vector a)) where
+instance Arbitrary a => Arbitrary (V.Vector a) where
   arbitrary = V.fromList <$> arbitrary
+
+instance (Arbitrary a, Unbox a)  => Arbitrary (U.Vector a) where
+  arbitrary = U.fromList <$> arbitrary
 
 instance Arbitrary Bounds where
   arbitrary = (Bounds (Cell 0 0))

@@ -7,6 +7,7 @@ import           Data.Char (toUpper)
 import           Data.List (intersperse, maximumBy)
 import           Data.Ord (comparing)
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
 
 import           Batcave.Commands
 import           Batcave.Types
@@ -21,7 +22,7 @@ initialBoard :: Problem -> Maybe Board
 initialBoard p = (flip (%//) filled . emptyBoard)  <$> bounds
  where 
   bounds = boundingCells (problemWidth p) (problemHeight p)
-  filled = [(c, Full) | c <- V.toList (problemFilled p)]
+  filled = [(c, Full) | c <- U.toList (problemFilled p)]
 
 -- | Clear a row from a board.
 clearRow :: Int -> Board -> Board
@@ -76,7 +77,7 @@ clearBoard b = (b', length rs)
 
 -- | Test whether all of the members of a unit are within the bounds of a board.
 unitInBounds :: Board -> Unit -> Bool
-unitInBounds b u = all (inBounds b) $ unitMembers u
+unitInBounds b u = U.all (inBounds b) $ unitMembers u
 
 -- | Test whether a cell is occupied on a board.
 occupied :: Board -> Cell -> Bool
@@ -84,22 +85,15 @@ occupied b c = b %! c == Full
 
 -- | Test whether all of the members of a unit are unoccupied.
 unitUnoccupied :: Board -> Unit -> Bool
-unitUnoccupied b u = all (not . occupied b) $ unitMembers u
+unitUnoccupied b u = U.all (not . occupied b) $ unitMembers u
 
 -- | Test whether a unit can be placed on a board.
 unitPlaceable :: Board -> Unit -> Bool
 unitPlaceable b u = unitInBounds b u && unitUnoccupied b u
 
--- | Map over the cells in a unit.
-mapUnit :: (Cell -> Cell) -> Unit -> Unit
-mapUnit f u = u {
-  unitMembers = fmap f $ unitMembers u,
-  unitPivot   = f $ unitPivot u
-}
-
 -- | Place a unit on a board. Return @Nothing@ if the placement is invalid.
 placeUnit :: Unit -> Board -> Maybe Board
-placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- V.toList (unitMembers u)]
+placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- U.toList (unitMembers u)]
               | otherwise         = Nothing
 
 -- | Move a unit to the location it would be spawned on the given board.
@@ -119,12 +113,12 @@ spawnUnit u b = mapUnit shift u
 
 -- | Find the bounds of a unit.
 unitBounds :: Unit -> Bounds
-unitBounds Unit{..}
-    | V.null unitMembers = error "unitBounds: unit had no members"
-    | otherwise          = Bounds unitMin unitMax
+unitBounds unit
+    | U.null (unitMembers unit) = error "unitBounds: unit had no members"
+    | otherwise                 = Bounds unitMin unitMax
   where
-    unitMin = V.foldl1' (merge min) unitMembers
-    unitMax = V.foldl1' (merge max) unitMembers
+    unitMin = U.foldl1' (merge min) (unitMembers unit)
+    unitMax = U.foldl1' (merge max) (unitMembers unit)
 
     merge op (Cell x0 y0) (Cell x1 y1) = Cell (op x0 x1) (op y0 y1)
 
@@ -360,4 +354,4 @@ cellToRenderCell b u c
   | inUnit    = RUnit
   | otherwise = RState occupy
   where occupy = b %! c
-        inUnit = V.elem c (unitMembers u)
+        inUnit = U.elem c (unitMembers u)

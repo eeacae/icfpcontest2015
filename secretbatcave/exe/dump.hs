@@ -14,10 +14,13 @@ import qualified Data.Vector as V
 import           System.Environment (getArgs)
 import           System.IO (stderr)
 
-import           Batcave.RunGame (Game(..), initGame, stepGame, gameScore)
+import           Batcave.RunGame (Game(..), ActiveUnit(..), GameEnd(..))
+import           Batcave.RunGame (initGame, stepGame, gameScore, unGameScore)
 import qualified Batcave.Solver.FloRida as FloRida
 import qualified Batcave.Solver.Lucky as Lucky
 import           Batcave.Types
+
+import           Debug.Trace
 
 ------------------------------------------------------------------------
 
@@ -49,12 +52,14 @@ encodeFrames problem@Problem{..} solution@Solution{..} =
 
     runStep (game1, cmds)
         | V.null cmds = Nothing
-        | otherwise   = (\g -> (g, (g, V.tail cmds))) <$> stepGame (V.head cmds) game1
+        | otherwise   = case stepGame (V.head cmds) game1 of
+                          Left end -> traceShow end Nothing
+                          Right  g -> Just (g, (g, V.tail cmds))
 
 encodeGame :: Game -> A.Value
 encodeGame game@Game{..} =
     A.object [ "locked"  .= fromBoard gameBoard
-             , "current" .= fromMaybe V.empty (fromCurrent <$> gameUnit)
+             , "current" .= fromMaybe V.empty (fromActive <$> gameActive)
              , "score"   .= takeScore game ]
   where
     fromBoard = V.fromList
@@ -62,8 +67,10 @@ encodeGame game@Game{..} =
               . Array.assocs
               . unBoard
 
-    fromCurrent = V.map coord
-                . unitMembers
+    fromActive = V.map coord
+               . V.convert
+               . unitMembers
+               . activeUnit
 
     takeScore = unGameScore
               . gameScore

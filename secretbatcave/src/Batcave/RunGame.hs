@@ -1,10 +1,14 @@
 {-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Batcave.RunGame
     ( Game(..)
+    , ActiveUnit(..)
+    , GameEnd(..)
+    , GameScore(..)
     , gameScore
 
     -- * Game running
@@ -17,25 +21,35 @@ module Batcave.RunGame
     , scorePhrases
     ) where
 
+import           Control.Monad (join)
+import           Data.List
+import           Data.Monoid ((<>))
+import           Data.Set (Set)
+import qualified Data.Set as Set
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
+
 import           Batcave.Commands
 import           Batcave.Hex
 import           Batcave.Random
 import           Batcave.Types
-
-import           Data.List
-import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Vector as V
 
 ------------------------------------------------------------------------
 -- Types
 
 -- | Overall game state.
 data Game = Game {
-      gameSource :: ![Unit]       -- ^ All coming units, relative coordinates
-    , gameUnit   :: !(Maybe Unit) -- ^ The current unit in play
-    , gameBoard  :: !Board        -- ^ Board state
-    , gameScores :: ![UnitScore]  -- ^ For final scoring, leftmost==newest
+      gameSource :: ![Unit]             -- ^ All coming units, relative coordinates
+    , gameActive :: !(Maybe ActiveUnit) -- ^ The unit under active player control
+    , gameBoard  :: !Board              -- ^ Board state
+    , gameScores :: ![UnitScore]        -- ^ For final scoring, leftmost==newest
+    } deriving (Eq, Show)
+
+data ActiveUnit = ActiveUnit {
+      activeUnit    :: Unit     -- ^ The current active unit
+    , activeHistory :: Set Unit -- ^ The history of states we have been in previously
     } deriving (Eq, Show)
 
 data UnitScore = UnitScore {
@@ -43,7 +57,15 @@ data UnitScore = UnitScore {
     , scoreLines :: Int -- ^ Lines removed with this unit score
     } deriving (Eq, Show)
 
-data GameError = InvalidProblem Text
+newtype GameScore = GameScore {
+      unGameScore :: Int
+    } deriving (Eq, Show, Num)
+
+data GameEnd =
+      YouWin        -- ^ Successfully exhausted the source.
+    | BoardOverflow -- ^ We ran out of space on the board.
+    | IllegalMove   -- ^ Player tried to make an illegal move.
+    | Fatal Text    -- ^ A fatal error occurred.
   deriving (Eq, Show)
 
 
@@ -51,7 +73,7 @@ data GameError = InvalidProblem Text
 -- Game initialisation
 
 -- | Try to initialise a game.
-initGame :: Problem -> Seed -> Either GameError Game
+initGame :: Problem -> Seed -> Either GameEnd Game
 initGame p@Problem{..} seed = do
     board  <- makeBoard
     source <- makeSource
@@ -61,11 +83,11 @@ initGame p@Problem{..} seed = do
 
     makeSource
       | validSeed = return (take problemSourceLength (unitSequence seed problemUnits))
-      | otherwise = flail "Solution seed not in problem"
+      | otherwise = flail "Seed not in problem"
 
     validSeed = seed `V.elem` problemSourceSeeds
 
-    flail = Left . InvalidProblem
+    flail = Left . Fatal
 
 unitSequence :: Seed -> V.Vector Unit -> [Unit]
 unitSequence seed units = map (units V.!) rs
@@ -76,26 +98,45 @@ unitSequence seed units = map (units V.!) rs
 
 
 ------------------------------------------------------------
+-- Active unit / history
+
+makeActive :: Unit -> ActiveUnit
+makeActive unit = ActiveUnit unit Set.empty
+
+moveNext :: Unit -> ActiveUnit -> Maybe ActiveUnit
+moveNext unit (ActiveUnit _ history)
+  | Set.member unit history = Nothing
+  | otherwise               = Just (ActiveUnit unit (Set.insert unit history))
+
+
+------------------------------------------------------------
 -- Stepping through the game states
 
 -- | Run a number of steps of the game.
-runGame :: [Command] -> Game -> Maybe Game
-runGame cmds game = foldl' loop (Just game) cmds
+runGame :: [Command] -> Game -> Either GameEnd Game
+runGame cmds game = foldl' loop (Right game) cmds
   where
-    loop :: Maybe Game -> Command -> Maybe Game
-    loop Nothing  _   = Nothing
-    loop (Just g) cmd = stepGame cmd g
+    loop :: Either GameEnd Game -> Command -> Either GameEnd Game
+    loop (Left  e) _   = Left e
+    loop (Right g) cmd = stepGame cmd g
 
 -- | Run a single step of the game.
-stepGame :: Command -> Game -> Maybe Game
+stepGame :: Command -> Game -> Either GameEnd Game
 stepGame cmd game0 = step =<< ensureUnit game0
   where
     step game@Game{..}
         -- Next board will be legal, so move
         | Just _    <- nextBoard
-        , Just next <- nextUnit
+        , Just next <- nextActive
 
-        = Just $ game { gameUnit = Just next }
+        = Right $ game { gameActive = Just next }
+
+
+        -- Next board will be legal, but will result in a duplicate state, game over
+        | Just _  <- nextBoard
+        , Nothing <- nextActive
+
+        = Left IllegalMove
 
 
         -- Next board is not legal, but current board is ok, so lock
@@ -103,57 +144,60 @@ stepGame cmd game0 = step =<< ensureUnit game0
         , Just (board, rows) <- clearBoard <$> currentBoard
         , Just score         <- makeScore rows <$> gameUnit
 
-        = Just $ game { gameUnit = Nothing
-                      , gameBoard   = board
-                      , gameScores  = score : gameScores }
+        = Right $ game { gameActive = Nothing
+                       , gameBoard  = board
+                       , gameScores = score : gameScores }
 
 
         -- Current board is not legal, game over
         | Nothing <- currentBoard
 
-        = Nothing
+        = Left BoardOverflow
 
 
         -- This shouldn't happen, dump the game state if it does.
         | otherwise
 
-        = error ("stepGame: my brain just exploded:\n" ++ show game)
+        = Left (Fatal ("my brain just exploded:\n" <> T.pack (show game)))
 
       where
+        gameUnit = activeUnit <$> gameActive
         nextUnit = applyCommand cmd <$> gameUnit
 
         currentBoard = gameUnit >>= \u -> placeUnit u gameBoard
         nextBoard    = nextUnit >>= \u -> placeUnit u gameBoard
 
+        nextActive = join (moveNext <$> nextUnit <*> gameActive)
+
         makeScore rows unit = UnitScore {
-            scoreSize  = V.length (unitMembers unit)
+            scoreSize  = U.length (unitMembers unit)
           , scoreLines = rows
           }
 
 
 -- | Ensure that the game has a current unit.
-ensureUnit :: Game -> Maybe Game
+ensureUnit :: Game -> Either GameEnd Game
 ensureUnit game@Game{..}
 
     -- No current unit, grab one from the source.
-    | Nothing        <- gameUnit
+    | Nothing        <- gameActive
     , (fresh:source) <- gameSource
     , spawn          <- spawnUnit fresh gameBoard
 
-    = Just (game { gameSource  = source
-                 , gameUnit = Just spawn })
+    = Right (game { gameSource = source
+                  , gameActive = Just (makeActive spawn) })
 
 
     -- Already have a unit, nothing to do!
-    | Just _ <- gameUnit
+    | Just _ <- gameActive
 
-    = Just game
+    = Right game
 
 
     -- No units left in the source, game over!
     | otherwise
 
-    = Nothing
+    = Left YouWin
 
 
 ------------------------------------------------------------

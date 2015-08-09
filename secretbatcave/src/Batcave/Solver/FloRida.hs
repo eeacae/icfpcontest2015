@@ -11,11 +11,14 @@ import           Data.Maybe (fromMaybe)
 import           Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
 
 import           Batcave.BFS (validMoves)
 import           Batcave.Commands
-import           Batcave.RunGame (Game(..), initGame, runGame, ensureUnit)
+import           Batcave.RunGame (Game(..), ActiveUnit(..), initGame, runGame, ensureUnit)
 import           Batcave.Types
+
+import           Debug.Trace
 
 ------------------------------------------------------------------------
 
@@ -47,25 +50,31 @@ solve problem@Problem{..} = Solution {
 allMoves :: Game -> [Command]
 allMoves game0 =
   case ensureUnit game0 of
-    Nothing    -> []
-    Just game1 -> let cmds  = nextMove game1
-                      game2 = runGame cmds game1
-                  in
-                      maybe cmds (\g -> cmds ++ allMoves g) game2
+    Left  end   -> traceShow end []
+    Right game1 -> let cmds  = nextMove game1
+                       game2 = runGame cmds game1
+                   in
+                       either (\e -> traceShow e cmds)
+                              (\g -> cmds ++ allMoves g) game2
 
 nextMove :: Game -> [Command]
 nextMove Game{..} = best
   where
-    (_, best) = maximumBy (compare `on` unitTop . fst)
+    (_, best) = maximumBy (compare `on` unitSortOrder . fst)
               $ validMoves unit gameBoard
 
-    unit = fromMaybe (error msg) gameUnit
-    msg  = "nextMove: invalid game state, must have a spawned unit!"
+    unit = activeUnit (fromMaybe (error msg) gameActive)
+    msg  = "nextMove: invalid game state, must have forgotten to spawn a unit!"
 
 
 ------------------------------------------------------------------------
 
-unitTop :: Unit -> Int
-unitTop = V.maximum . V.map top . unitMembers
+-- | Return something that when maximised, selects the best unit placement.
+unitSortOrder :: Unit -> Int
+unitSortOrder unit = U.sum ys
   where
-    top (Cell _ y) = y
+    ys = U.map cellY
+       . unitMembers
+       $ unit
+
+    cellY (Cell _ y) = y

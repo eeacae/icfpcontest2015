@@ -2,7 +2,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- | Shawty got low, low, low, low, low, low, low, low.
 module Batcave.Solver.Nostrovia (solve, solveGame) where
 
 import           Data.Function (on)
@@ -15,8 +14,10 @@ import qualified Data.Vector as V
 import           Batcave.BFS (validMoves)
 import           Batcave.Commands
 import           Batcave.Hex
-import           Batcave.RunGame (Game(..), initGame, runGame, ensureUnit)
+import           Batcave.RunGame (Game(..), ActiveUnit(..), initGame, runGame, ensureUnit)
 import           Batcave.Types
+
+import           Debug.Trace
 
 ------------------------------------------------------------------------
 
@@ -48,11 +49,12 @@ solve problem@Problem{..} = Solution {
 allMoves :: Game -> [Command]
 allMoves game0 =
   case ensureUnit game0 of
-    Nothing    -> []
-    Just game1 -> let cmds  = nextMove game1
-                      game2 = runGame cmds game1
-                  in
-                      maybe cmds (\g -> cmds ++ allMoves g) game2
+    Left  end   -> traceShow end []
+    Right game1 -> let cmds  = nextMove game1
+                       game2 = runGame cmds game1
+                   in
+                       either (\e -> traceShow e cmds)
+                              (\g -> cmds ++ allMoves g) game2
 
 myHeuristic :: Board -> Unit -> Double
 myHeuristic b u = heuristic (-0.510066) 0.760666 (-0.35663) (-0.184483) $ fromJust $ placeUnit u b
@@ -63,13 +65,5 @@ nextMove Game{..} = best
     (_, best) = maximumBy (compare `on` myHeuristic gameBoard . fst)
               $ validMoves unit gameBoard
 
-    unit = fromMaybe (error msg) gameUnit
+    unit = activeUnit (fromMaybe (error msg) gameActive)
     msg  = "nextMove: invalid game state, must have a spawned unit!"
-
-
-------------------------------------------------------------------------
-
-unitTop :: Unit -> Int
-unitTop = V.maximum . V.map top . unitMembers
-  where
-    top (Cell _ y) = y
