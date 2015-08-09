@@ -15,7 +15,7 @@ solve :: Problem -> Solution
 solve p@Problem{..} =
     Solution { solutionProb = problemId
              , solutionSeed = seed 
-             , solutionTag = Just $ "lucky-" ++ show (problemId, seed)
+             , solutionTag = Just $ T.pack ("lucky-" ++ show (problemId, seed))
              , solutionCmds = textToCommands' $ T.pack $
                               concat $ take problemSourceLength $
                               drop problemWidth
