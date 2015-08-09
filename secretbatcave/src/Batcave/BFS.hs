@@ -41,20 +41,21 @@ append queue to_queue = foldl' (flip put) queue to_queue
 -- | All possible last moves that lock a unit, none of these are valid moves
 -- (they move onto a filled cell or off the board).
 allLockingPositions :: Unit -> Board -> ([Unit], Map Unit (Command, Unit))
-allLockingPositions start = bfs (singleton start) mempty
+allLockingPositions start = bfs (singleton start) (Map.singleton start (undefined, start))
 
 -- | Return a list of the valid moves for the given unit on a board.
 -- The valid moves contain the unit's final position on the board, and a list
 -- of commands that will lock the unit in that position.
 validMoves :: Unit -> Board -> [(Unit, [Command])]
 validMoves u b = mapMaybe (backtrack ps) us
-  where (us, ps) = bfs (singleton u) mempty b
+  where (us, ps) = bfs (singleton u) (Map.singleton u (undefined, u)) b
 
 -- | Find the final position of a unit and the list of commands that lead to
 -- locking that unit in position.
 backtrack :: Map Unit (Command, Unit) -> Unit -> Maybe (Unit, [Command])
-backtrack ps u = fmap (\v -> (snd v, map fst $ reverse ucs)) $ listToMaybe ucs
+backtrack ps u = fmap (\v -> (snd v, reverse $ map fst ucs')) $ listToMaybe ucs
   where ucs                 = backtrack' ps u
+        ucs'                = head ucs : (map snd $ takeWhile (\((_, u), (_, u')) -> u /= u') $ zip ucs $ tail ucs)
         backtrack' ps u     = maybe [] backtrack'' $ Map.lookup u ps
         backtrack'' (m, u') = (m, u') : backtrack' ps u'
 
@@ -68,7 +69,7 @@ bfs queue visited board =
     (valid_children, invalid_children) = partitionChildren unit board
     to_queue = Map.difference valid_children visited
     to_output = Map.difference invalid_children visited
-    visited' = Map.union valid_children $ Map.union invalid_children visited
+    visited' = Map.union visited $ Map.union valid_children invalid_children
     (unit, queue') = get queue
     queue'' = append queue' $ Map.keys to_queue
 
