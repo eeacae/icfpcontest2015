@@ -14,6 +14,7 @@ import           Options.Applicative
 
 import           Batcave.IO
 import           Batcave.Types
+import           Batcave.Solvers
 
 data Options = Options
     { limitTime   :: Maybe Int
@@ -48,7 +49,14 @@ run o@Options{..} = do
     outputAll . concat $ parMap rpar (solve phrases) (catMaybes ps)
   where
     solve :: [String] -> Problem -> [Solution]
-    solve words path = []
+    -- Must add power words when rendering json (we do not have a
+    -- string here). Equivalent replacements in command sequence,
+    -- starting with the shortest word, such that longer ones are used
+    -- where possible.
+    solve _ = 
+        -- solver interface function defined in Batcave.Solvers:
+        useFloRida
+        -- useNostrovia
 
     outputAll :: [Solution] -> IO ()
     outputAll s =

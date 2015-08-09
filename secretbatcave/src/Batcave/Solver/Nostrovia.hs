@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Shawty got low, low, low, low, low, low, low, low.
-module Batcave.Solver.Nostrovia (solve) where
+module Batcave.Solver.Nostrovia (solve, solveGame) where
 
 import           Data.Function (on)
 import           Data.List (maximumBy)
@@ -20,6 +20,10 @@ import           Batcave.Types
 
 ------------------------------------------------------------------------
 
+-- interface
+solveGame :: Game -> [Command]
+solveGame = allMoves
+
 solve :: Problem -> Solution
 solve problem@Problem{..} = Solution {
       solutionProb = problemId
@@ -30,14 +34,14 @@ solve problem@Problem{..} = Solution {
   where
     seed = V.head problemSourceSeeds
 
-    tag  = "flo-rida-"
+    tag  = "nostrovia-"
         <> T.pack (show problemId)
         <> "-"
         <> T.pack (show (unSeed seed))
 
     game = either die id (initGame problem seed)
 
-    die x = error ("Nostrivia.solve: " ++ show x)
+    die x = error ("Nostrovia.solve: " ++ show x)
 
 ------------------------------------------------------------------------
 

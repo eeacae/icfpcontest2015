@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wall #-}
 
 -- | Shawty got low, low, low, low, low, low, low, low.
-module Batcave.Solver.FloRida (solve) where
+module Batcave.Solver.FloRida (solve, solveGame) where
 
 import           Data.Function (on)
 import           Data.List (maximumBy)
@@ -18,6 +18,10 @@ import           Batcave.RunGame (Game(..), initGame, runGame, ensureUnit)
 import           Batcave.Types
 
 ------------------------------------------------------------------------
+
+-- interface
+solveGame :: Game -> [Command]
+solveGame = allMoves
 
 solve :: Problem -> Solution
 solve problem@Problem{..} = Solution {

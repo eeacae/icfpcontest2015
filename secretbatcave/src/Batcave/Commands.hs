@@ -17,6 +17,8 @@ import qualified Data.Text  as T
 import qualified Data.Map as Map
 import           Data.Maybe
 
+import           Control.DeepSeq(NFData(..))
+
 import Test.QuickCheck
 
 data CompassDirection
@@ -34,6 +36,11 @@ data Command
     = Move CompassDirection
     | Rotate RotationDirection
   deriving (Eq, Show)
+
+instance NFData Command 
+    where rnf (Move x)   = seq x ()
+          rnf (Rotate x) = seq x ()
+
 instance Arbitrary Command where
   arbitrary = oneof [Move <$> arbitrary, Rotate <$> arbitrary]
 
