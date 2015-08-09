@@ -12,9 +12,11 @@ import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.Monoid ((<>))
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
+import           System.IO (stderr)
 
 import           Batcave.RunGame (Game(..), initGame, stepGame, gameScore)
 import qualified Batcave.Solver.FloRida as FloRida
+import qualified Batcave.Solver.Lucky as Lucky
 import           Batcave.Types
 
 ------------------------------------------------------------------------
@@ -26,18 +28,18 @@ main = do
       []       -> putStrLn "Usage: dump PROBLEM"
       (path:_) -> do
         problem <- readProblem path
-        L.putStrLn (A.encode (encodeFrames FloRida.solve problem))
+        let solution = FloRida.solve problem
+        L.putStrLn (A.encode (encodeFrames problem solution))
+        L.hPutStrLn stderr (A.encode (V.singleton solution))
 
 ------------------------------------------------------------------------
 
-encodeFrames :: (Problem -> Solution) -> Problem -> A.Value
-encodeFrames solve problem@Problem{..} =
+encodeFrames :: Problem -> Solution -> A.Value
+encodeFrames problem@Problem{..} solution@Solution{..} =
     A.object [ "width"  .= problemWidth
              , "height" .= problemHeight
              , "frames" .= frames ]
   where
-    solution@Solution{..} = solve problem
-
     frames = V.map encodeGame
            $ V.unfoldr runStep (game0, commands)
 
