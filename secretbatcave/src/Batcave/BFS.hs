@@ -2,8 +2,8 @@
 module Batcave.BFS
 (
     allLockingPositions,
-    singleton,
-    bfs
+    bfs,
+    singleton
 ) where
 
 import           Batcave.Commands
