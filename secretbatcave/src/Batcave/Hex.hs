@@ -4,7 +4,8 @@ module Batcave.Hex where
 
 import           Data.Array
 import           Data.Char (toUpper)
-import           Data.List (intersperse)
+import           Data.List (intersperse, maximumBy)
+import           Data.Ord (comparing)
 import qualified Data.Vector as V
 
 import           Batcave.Commands
@@ -50,14 +51,14 @@ boardHeight :: Board -> Int
 boardHeight = snd . boardDimensions
 
 -- | Get a row from a board.
-boardRow :: Int -> Board -> [Cell]
-boardRow r b | 0 <= r && r < h  = [Cell x r | x <- [0..w - 1]]
+boardRow :: Board -> Int -> [Cell]
+boardRow b r | 0 <= r && r < h  = [Cell x r | x <- [0..w - 1]]
              | otherwise        = []
   where (w, h) = boardDimensions b 
 
 -- | Get a column from a board.
-boardColumn :: Int -> Board -> [Cell]
-boardColumn c b | 0 <= c && c < w  = [Cell c y | y <- [0..h - 1]]
+boardColumn :: Board -> Int -> [Cell]
+boardColumn b c | 0 <= c && c < w  = [Cell c y | y <- [0..h - 1]]
                 | otherwise        = []
   where (w, h) = boardDimensions b 
 
@@ -243,34 +244,48 @@ applyCommand (Move SW) = translateUnitSouthWest
 applyCommand (Rotate Clockwise) = rotateUnitCW
 applyCommand (Rotate CounterClockwise) = rotateUnitCCW
 
--- | Calculate the height of a column in a board
+-- | Find the highest occupied cell in a column of a board
+columnPeak :: Board -> Int -> Maybe Cell
+columnPeak b c | null ocs  = Nothing
+               | otherwise = Just $ maximumBy (comparing (cellHeight b)) ocs
+  where ocs = filter (occupied b) $ boardColumn b c
+
+-- | Find the height of a column in a board
 columnHeight :: Board -> Int -> Int
-columnHeight b c = maximum $ (0:) $ map (cellHeight b) $ filter (occupied b) $ boardColumn c b
+columnHeight b c = maybe 0 (cellHeight b) $ columnPeak b c
 
 -- | Calculate the height of each column
-peaks :: Board -> [Int]
-peaks b = map (columnHeight b) $ [0..w - 1]
+columnHeights :: Board -> [Int]
+columnHeights b = map (columnHeight b) $ [0..w - 1]
   where w = boardWidth b
 
 -- | Calculate the aggregate height of the board
 aggregateHeight :: Board -> Int
-aggregateHeight = sum . peaks
+aggregateHeight = sum . columnHeights
+
+-- | Find the completed rows in the board
+completeRows :: Board -> [Int]
+completeRows b = filter (rowCompleted b) [h - 1, h - 2..0]
+  where h = boardHeight b
 
 -- | Calculate the number of complete rows in the board
-completeRows :: Board -> Int
-completeRows b = length $ filter (rowCompleted b) [h - 1, h - 2..0]
-  where h = boardHeight b
+numCompleteRows :: Board -> Int
+numCompleteRows = length . completeRows
+
+-- | Find the holes in a column of the board
+columnHoles :: Board -> Int -> [Cell]
+columnHoles b c = filter isHole $ boardColumn b c
+  where isHole c = not (occupied b c) && cellHeight b c < columnHeight b (cellColumn c)
 
 -- | Calculate the number of holes in the board
 holes :: Board -> Int
-holes b = sum $ map holesColumn $ [0..w-1]
-  where w             = boardWidth b
-        holesColumn c = length $ filter isHole $ boardColumn c b
-        isHole c      = not (occupied b c) && cellHeight b c < columnHeight b (cellColumn c)
+holes b = sum $ map (length . columnHoles b) $ [0..w-1]
+  where w = boardWidth b
 
 -- | Calculate the bumpiness of the top of the board
 bumpiness :: Board -> Int
-bumpiness b = sum $ map (abs . uncurry (-)) $ zip (peaks b) (tail $ peaks b)
+bumpiness b = sum $ map (abs . uncurry (-)) $ zip hs (tail $ hs)
+  where hs = columnHeights b
 
 ------------------------------------------------------------------------
 -- Utilities to render the current game state

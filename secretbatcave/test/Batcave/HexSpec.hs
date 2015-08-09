@@ -11,8 +11,8 @@ import Test.QuickCheck
 import Test.QuickCheck.Property
 
 import Batcave.Commands
-import Batcave.Types
 import Batcave.Hex
+import Batcave.Types
 
 spec :: Spec
 spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
@@ -22,35 +22,49 @@ spec = describe "Tests for Batcave.Hex (board/grid coordinate logic)" $ do
         (occupied (emptyBoard . fromJust $ boundingCells w h) c) === False
   it "Conversion in and out of cubic is idempotent" $ property $
     \c -> c === (cubicToCell . cellToCubic) c
-  it "unit translation SE = SW + E" $ property prop_translateUnitTriangleSouthEast
-  it "unit translation SW = SE + W" $ property prop_translateUnitTriangleSouthWest
-  it "unit translation E + W = id" $ property prop_translateUnitEastWestInverse
-  it "unit translation W + E = id" $ property prop_translateUnitWestEastInverse
-  it "unit rotation CCW then CW = id" $ property $ prop_rotateUnitCCWCWInverse
-  it "unit rotation CW then CCW = id" $ property $ prop_rotateUnitCWCCWInverse
-  it "unit rotation CW 6 times = id" $ property prop_rotateOrder6CW
-  it "unit rotation CCW 6 times = id" $ property prop_rotateOrder6CCW
-  it "cell rotation CW/CCW is inverse" $ property prop_rotateCellCWCCWInverse
-  it "cell rotation CW/CCW is inverse" $ property prop_rotateCellCCWCWInverse
-  it "distance to pivot invariant under cell rotation " $
+  it "Unit translation SE = SW + E" $ property prop_translateUnitTriangleSouthEast
+  it "Unit translation SW = SE + W" $ property prop_translateUnitTriangleSouthWest
+  it "Unit translation E + W = id" $ property prop_translateUnitEastWestInverse
+  it "Unit translation W + E = id" $ property prop_translateUnitWestEastInverse
+  it "Unit rotation CCW then CW = id" $ property $ prop_rotateUnitCCWCWInverse
+  it "Unit rotation CW then CCW = id" $ property $ prop_rotateUnitCWCCWInverse
+  it "Unit rotation CW 6 times = id" $ property prop_rotateOrder6CW
+  it "Unit rotation CCW 6 times = id" $ property prop_rotateOrder6CCW
+  it "Cell rotation CW/CCW is inverse" $ property prop_rotateCellCWCCWInverse
+  it "Cell rotation CW/CCW is inverse" $ property prop_rotateCellCCWCWInverse
+  it "Distance to pivot invariant under cell rotation " $
     property prop_rotateCellCWDistance
-  it "distance to pivot invariant under cell rotation " $
+  it "Distance to pivot invariant under cell rotation " $
     property prop_rotateCellCCWDistance
-  it "cell distance is a metric space" $ property prop_cellDistanceNonNegative
-  it "cell distance is a metric space" $ property prop_cellDistanceIdentity
-  it "cell distance is a metric space" $ property prop_cellDistanceCommutative
-  it "cell distance is a metric space" $ property prop_cellDistanceTriangle
-  it "translation E = cell distance 1" $ property prop_translateCellEastDistance
-  it "translation W = cell distance 1" $ property prop_translateCellWestDistance
-  it "translation SE = cell distance 1" $ property prop_translateCellSouthEastDistance
-  it "translation SW = cell distance 1" $ property prop_translateCellSouthWestDistance
+  it "Cell distance is a metric space" $ property prop_cellDistanceNonNegative
+  it "Cell distance is a metric space" $ property prop_cellDistanceIdentity
+  it "Cell distance is a metric space" $ property prop_cellDistanceCommutative
+  it "Cell distance is a metric space" $ property prop_cellDistanceTriangle
+  it "Translation E = cell distance 1" $ property prop_translateCellEastDistance
+  it "Translation W = cell distance 1" $ property prop_translateCellWestDistance
+  it "Translation SE = cell distance 1" $ property prop_translateCellSouthEastDistance
+  it "Translation SW = cell distance 1" $ property prop_translateCellSouthWestDistance
   it "Movement commands commute" $ property prop_applyCommandCommutative
-  it "clearBoard should remove a sensible number of cells" $
-    property prop_clearBoardNumberOfCellsRemoved
-  it "clearBoard should be idempotent" $
-    property prop_clearBoardIdempotent
-  it "clearBoard should empty full boards" $
-    property prop_clearBoardWhenFull
+  it "clearBoard should remove a sensible number of cells" $ property prop_clearBoardNumberOfCellsRemoved
+  it "clearBoard should be idempotent" $ property prop_clearBoardIdempotent
+  it "Peak is an occupied cell" $ property prop_peakOccupied
+  it "Cells higher than peak are unoccupied" $ property prop_peakHigherUnoccupied
+  it "Column height is in valid range" $ property prop_columnHeightRange
+  it "Column heights match board width" $ property prop_columnHeightsNumber
+  it "Column heights are in valid range" $ property prop_columnHeightsRange
+  it "Aggregate height is in valid range" $ property prop_aggregateHeightRange
+  it "Length of complete rows is in valid range" $ property prop_completeRowsLength
+  it "Complete rows are complete" $ property prop_completeRowsComplete
+  it "Number of complete rows is in valid range" $ property prop_numCompleteRowsRange
+  it "Length of column holes is in valid range" $ property prop_columnHolesLength
+  it "Column holes are unoccupied" $ property prop_columnHolesUnoccupied
+  it "Column holes are lower than column peaks" $ property prop_columnHolesNotPeaks
+  it "Number of holes is in valid range" $ property prop_holesRange
+  it "Bumpiness is in valid range" $ property prop_bumpinessRange
+  it "Empty boards have 0 aggregate height" $ property prop_aggregateHeightEmptyBoard
+  it "Empty boards have 0 complete rows" $ property prop_numCompleteRowsEmptyBoard
+  it "Empty boards have 0 holes" $ property prop_holesEmptyBoard
+  it "Empty boards have 0 bumpiness" $ property prop_bumpinessEmptyBoard
 
 data BoardDims = BoardDims Int Int
   deriving (Eq, Show)
@@ -152,3 +166,84 @@ prop_clearBoardWhenFull = do
   let (_, h) = boundDimensions b
   let full = Board $ array (takeBounds b) [(c, Full) | c <- range (takeBounds b)]
   return $ (emptyBoard b, h) === (clearBoard full)
+
+prop_peakOccupied :: Board -> Int -> Property
+prop_peakOccupied b c = maybe True (occupied b) p === True
+  where p = columnPeak b c
+        h = boardHeight b
+
+prop_peakHigherUnoccupied :: Board -> Int -> Property
+prop_peakHigherUnoccupied b c = maybe True higherUnoccupied p === True
+  where p = columnPeak b c
+        higherUnoccupied c' = all (not . occupied b) $ filter (\c'' -> cellHeight b c'' > cellHeight b c') $ boardColumn b c
+
+prop_columnHeightRange :: Board -> Int -> Property
+prop_columnHeightRange b c = (0 <= p && p <= h) === True
+  where p = columnHeight b c
+        h = boardHeight b
+
+prop_columnHeightsNumber :: Board -> Property
+prop_columnHeightsNumber b = boardWidth b === (length $ columnHeights b)
+
+prop_columnHeightsRange :: Board -> Property
+prop_columnHeightsRange b = (all (\p -> 0 <= p && p <= h) $ columnHeights b) === True
+  where h = boardHeight b
+
+prop_aggregateHeightRange :: Board -> Property
+prop_aggregateHeightRange b = (0 <= a && a <= w * h) === True
+  where (w, h) = boardDimensions b
+        a = aggregateHeight b
+
+prop_completeRowsLength :: Board -> Property
+prop_completeRowsLength b = (0 <= n && n <= h) === True
+  where h = boardHeight b
+        n = length $ completeRows b
+
+prop_completeRowsComplete :: Board -> Property
+prop_completeRowsComplete b = (all (rowCompleted b) $ completeRows b) === True
+
+prop_numCompleteRowsRange :: Board -> Property
+prop_numCompleteRowsRange b = (0 <= n && n <= h) === True
+  where h = boardHeight b
+        n = numCompleteRows b
+
+prop_columnHolesLength :: Board -> Int -> Property
+prop_columnHolesLength b c = (0 <= n && n <= h) === True
+  where h = boardHeight b
+        n = length $ columnHoles b c
+
+prop_columnHolesUnoccupied :: Board -> Int -> Property
+prop_columnHolesUnoccupied b c = all (not . occupied b) hs === True
+  where hs = columnHoles b c
+
+prop_columnHolesNotPeaks :: Board -> Int -> Property
+prop_columnHolesNotPeaks b c = all belowPeak hs === True
+  where p = columnPeak b c
+        hs = columnHoles b c
+        belowPeak h = maybe False (\p' -> cellHeight b p' > cellHeight b h) p
+
+prop_holesRange :: Board -> Property
+prop_holesRange b = (0 <= a && a <= w * h) === True
+  where (w, h) = boardDimensions b
+        a = holes b
+
+prop_bumpinessRange :: Board -> Property
+prop_bumpinessRange b = (0 <= a && a <= w * h) === True
+  where (w, h) = boardDimensions b
+        a = bumpiness b
+
+prop_aggregateHeightEmptyBoard :: BoardDims -> Property
+prop_aggregateHeightEmptyBoard (BoardDims w h) =
+        aggregateHeight (emptyBoard . fromJust $ boundingCells w h) === 0
+
+prop_numCompleteRowsEmptyBoard :: BoardDims -> Property
+prop_numCompleteRowsEmptyBoard (BoardDims w h) =
+        numCompleteRows (emptyBoard . fromJust $ boundingCells w h) === 0
+
+prop_holesEmptyBoard :: BoardDims -> Property
+prop_holesEmptyBoard (BoardDims w h) =
+        holes (emptyBoard . fromJust $ boundingCells w h) === 0
+
+prop_bumpinessEmptyBoard :: BoardDims -> Property
+prop_bumpinessEmptyBoard (BoardDims w h) =
+        bumpiness (emptyBoard . fromJust $ boundingCells w h) === 0
