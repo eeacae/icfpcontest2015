@@ -72,7 +72,10 @@ HT.Hexagon = function(id, x, y) {
 
     this.P1 = new HT.Point(x + x1, y + y1);
 
-    this.selected = false;
+    this.locked    = false;
+    this.current   = false;
+    this.disabled  = false;
+    this.lastColor = null;
 };
 
 /**
@@ -81,17 +84,24 @@ HT.Hexagon = function(id, x, y) {
  */
 HT.Hexagon.prototype.draw = function(ctx) {
 
-    ctx.strokeStyle = "black";
-    ctx.fillStyle = "#ffffff";
+    var nextColor = "#ffffff";
 
     if(this.locked)
-        ctx.fillStyle = "#de930c";
+        nextColor = "#de930c";
 
     if(this.current)
-        ctx.fillStyle = "#0099cc";
+        nextColor = "#0099cc";
 
     if(this.disabled)
-        ctx.fillStyle = "#000000";
+        nextColor = "#000000";
+
+    if(this.lastColor === nextColor) {
+        return;
+    }
+
+    ctx.strokeStyle = "black";
+    ctx.fillStyle   = nextColor;
+    this.lastColor  = nextColor;
 
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -104,54 +114,6 @@ HT.Hexagon.prototype.draw = function(ctx) {
     ctx.closePath();
     ctx.stroke();
     ctx.fill();
-
-    /*
-    if(this.Id)
-    {
-        //draw text for debugging
-        ctx.fillStyle = "black"
-            ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = 'middle';
-        //var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-        ctx.fillText(this.Id, this.MidPoint.X, this.MidPoint.Y);
-    }
-
-    if(this.PathCoOrdX !== null && this.PathCoOrdY !== null && typeof(this.PathCoOrdX) != "undefined" && typeof(this.PathCoOrdY) != "undefined")
-    {
-        //draw co-ordinates for debugging
-        ctx.fillStyle = "black"
-            ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = 'middle';
-        //var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-        ctx.fillText("("+this.PathCoOrdX+","+this.PathCoOrdY+")", this.MidPoint.X, this.MidPoint.Y + 10);
-    }
-
-    if(HT.Hexagon.Static.DRAWSTATS)
-    {
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
-        //draw our x1, y1, and z
-        ctx.beginPath();
-        ctx.moveTo(this.P1.X, this.y);
-        ctx.lineTo(this.P1.X, this.P1.Y);
-        ctx.lineTo(this.x, this.P1.Y);
-        ctx.closePath();
-        ctx.stroke();
-
-        ctx.fillStyle = "black"
-            ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = 'middle';
-        //var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-        ctx.fillText("z", this.x + this.x1/2 - 8, this.y + this.y1/2);
-        ctx.fillText("x", this.x + this.x1/2, this.P1.Y + 10);
-        ctx.fillText("y", this.P1.X + 2, this.y + this.y1/2);
-        ctx.fillText("z = " + HT.Hexagon.Static.SIDE, this.P1.X, this.P1.Y + this.y1 + 10);
-        ctx.fillText("(" + this.x1.toFixed(2) + "," + this.y1.toFixed(2) + ")", this.P1.X, this.P1.Y + 10);
-    }
-    */
 };
 
 /**

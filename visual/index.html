@@ -61,7 +61,7 @@
 
     // play game
     var i = 0;
-    setInterval(function() {
+    var step = function() {
       var frame = frames.frames[i];
 
       document.getElementById("score").innerHTML = frame.score;
@@ -84,7 +84,10 @@
       });
 
       i++;
-    }, 30);
+      window.requestAnimationFrame(step);
+    };
+
+    window.requestAnimationFrame(step);
 
   </script>
 </html>
