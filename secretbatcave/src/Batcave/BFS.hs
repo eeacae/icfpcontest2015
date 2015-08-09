@@ -10,6 +10,9 @@ import           Batcave.Commands
 import           Batcave.Hex
 import           Batcave.Types
 import           Data.Foldable
+import           Data.Map         (Map)
+import qualified Data.Map         as Map
+import           Data.Maybe       (listToMaybe)
 import           Data.Monoid
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
@@ -31,36 +34,44 @@ singleton :: a -> Queue a
 singleton a = Queue [a] []
 
 -- | Append many things
-append :: Foldable f => f a -> Queue a -> Queue a
-append to_queue queue = foldl' (flip put) queue to_queue
+append :: Foldable f => Queue a -> f a -> Queue a
+append queue to_queue = foldl' (flip put) queue to_queue
 
 -- | All possible last moves that lock a unit, none of these are valid moves
 -- (they move onto a filled cell or off the board).
-allLockingPositions :: Unit -> Board -> Set Unit
+allLockingPositions :: Unit -> Board -> ([Unit], Map Unit (Command, Unit))
 allLockingPositions start = bfs (singleton start) mempty
+
+-- | Find the final position of a unit and the list of commands that lead to
+-- locking that unit in position.
+backtrack :: Map Unit (Command, Unit) -> Unit -> Maybe (Unit, [Command])
+backtrack ps u = fmap (\v -> (snd v, map fst $ reverse ucs)) $ listToMaybe ucs
+  where ucs                 = backtrack' ps u
+        backtrack' ps u     = maybe [] backtrack'' $ Map.lookup u ps
+        backtrack'' (m, u') = (m, u') : backtrack' ps u'
 
 -- | Unoptimised BFS over possible moves, accumulates moves that lock the unit,
 -- queues up any valid move that has not already been visited.
-bfs :: Queue Unit -> Set Unit -> Board -> Set Unit
+bfs :: Queue Unit -> Map Unit (Command, Unit) -> Board -> ([Unit], Map Unit (Command, Unit))
 bfs (Queue [] []) _ _ = mempty
 bfs queue visited board =
-    to_output <> bfs queue'' visited' board
+    (Map.keys to_output, visited') <> bfs queue'' visited' board
   where
     (valid_children, invalid_children) = partitionChildren unit board
-    to_queue = Set.difference valid_children visited
-    to_output = Set.difference invalid_children visited
-    visited' = Set.union valid_children $ Set.union invalid_children visited
+    to_queue = Map.difference valid_children visited
+    to_output = Map.difference invalid_children visited
+    visited' = Map.union valid_children $ Map.union invalid_children visited
     (unit, queue') = get queue
-    queue'' = append to_queue queue'
+    queue'' = append queue' $ Map.keys to_queue
 
 -- | All legal and illegal moves from the given position
-partitionChildren :: Unit -> Board -> (Set Unit, Set Unit)
+partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
 partitionChildren unit board =
     -- Find all legal moves from current unit
-    let moves = fmap (`applyCommand` unit) commands
-        valid_moves = filter (unitPlaceable board) moves
-        invalid_moves = filter (not . unitPlaceable board) moves
-    in (Set.fromList valid_moves, Set.fromList invalid_moves)
+    let moves = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
+        valid_moves = filter (unitPlaceable board . fst) moves
+        invalid_moves = filter (not . unitPlaceable board .fst) moves
+    in (Map.fromList valid_moves, Map.fromList invalid_moves)
   where
     commands =
         [ Move W

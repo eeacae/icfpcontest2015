@@ -31,7 +31,7 @@ b = emptyBoard (Bounds (Cell 0 0) (Cell 20 20))
 u = singleton $ Unit (V.fromList [Cell 1 0]) (Cell 0 0)
 
 searched :: [Unit]
-searched = Set.toList $ bfs u mempty b
+searched = fst $ bfs u mempty b
 
 ------------------------------------------------------------------------
 
@@ -70,7 +70,7 @@ encodeFrames solve problem@Problem{..} =
     initial_unit = fromJust (gameUnit step1)
 
     searched :: [Unit]
-    searched = Set.toList $ bfs (singleton initial_unit) mempty board0
+    searched = fst $ bfs (singleton initial_unit) mempty board0
 
     runStep (game1, cmds)
         | V.null cmds = Nothing
