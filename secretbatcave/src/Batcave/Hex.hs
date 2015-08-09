@@ -4,7 +4,8 @@ module Batcave.Hex where
 
 import           Data.Array
 import           Data.Char (toUpper)
-import           Data.List (intersperse)
+import           Data.List (intersperse, maximumBy)
+import           Data.Ord (comparing)
 import qualified Data.Vector as V
 
 import           Batcave.Commands
@@ -21,12 +22,45 @@ initialBoard p = (flip (%//) filled . emptyBoard)  <$> bounds
  where 
   bounds = boundingCells (problemWidth p) (problemHeight p)
   filled = [(c, Full) | c <- V.toList (problemFilled p)]
+
 -- | Clear a row from a board.
 clearRow :: Int -> Board -> Board
 clearRow r b = b %// ([(Cell x y, b %! (Cell x (y - 1))) | x <- xs, y <- ys] ++ [(Cell x 0, Empty) | x <- xs])
   where (w, h) = boardDimensions b
         xs     = [0..w - 1]
         ys     = [1..r]
+
+-- | Get the column of a cell
+cellColumn :: Cell -> Int
+cellColumn (Cell x _) = x
+
+-- | Get the column of a cell
+cellRow :: Cell -> Int
+cellRow (Cell _ y) = y
+
+-- | Calculate the height of a cell in a board
+cellHeight :: Board -> Cell -> Int
+cellHeight b c = boardHeight b - cellRow c
+
+-- | Get the width of a board.
+boardWidth :: Board -> Int
+boardWidth = fst . boardDimensions
+
+-- | Get the height of a board.
+boardHeight :: Board -> Int
+boardHeight = snd . boardDimensions
+
+-- | Get a row from a board.
+boardRow :: Board -> Int -> [Cell]
+boardRow b r | 0 <= r && r < h  = [Cell x r | x <- [0..w - 1]]
+             | otherwise        = []
+  where (w, h) = boardDimensions b 
+
+-- | Get a column from a board.
+boardColumn :: Board -> Int -> [Cell]
+boardColumn b c | 0 <= c && c < w  = [Cell c y | y <- [0..h - 1]]
+                | otherwise        = []
+  where (w, h) = boardDimensions b 
 
 -- | Test whether a row in a board is completed.
 rowCompleted :: Board -> Int -> Bool
@@ -96,16 +130,16 @@ unitBounds Unit{..}
 
 -- | Convert a Cell to a Cubic. Taken from <http://www.redblobgames.com/grids/hexagons/>
 cellToCubic :: Cell -> Cubic
-cellToCubic (Cell col row) = Cubic x y z
-  where x = col - (row - (abs row `mod` 2)) `div` 2
-        z = row
+cellToCubic (Cell c r) = Cubic x y z
+  where x = c - (r - (abs r `mod` 2)) `div` 2
+        z = r
         y = -x - z
 
 -- | Convert a Cubic to a Cell.
 cubicToCell :: Cubic -> Cell
-cubicToCell (Cubic x y z) = Cell col row
-  where col = x + (z - (abs z `mod` 2)) `div` 2
-        row = z
+cubicToCell (Cubic x y z) = Cell c r
+  where c = x + (z - (abs z `mod` 2)) `div` 2
+        r = z
 
 -- | Calculate the distance between Cubics
 cubicDistance :: Cubic -> Cubic -> Int
@@ -209,6 +243,49 @@ applyCommand (Move SE) = translateUnitSouthEast
 applyCommand (Move SW) = translateUnitSouthWest
 applyCommand (Rotate Clockwise) = rotateUnitCW
 applyCommand (Rotate CounterClockwise) = rotateUnitCCW
+
+-- | Find the highest occupied cell in a column of a board
+columnPeak :: Board -> Int -> Maybe Cell
+columnPeak b c | null ocs  = Nothing
+               | otherwise = Just $ maximumBy (comparing (cellHeight b)) ocs
+  where ocs = filter (occupied b) $ boardColumn b c
+
+-- | Find the height of a column in a board
+columnHeight :: Board -> Int -> Int
+columnHeight b c = maybe 0 (cellHeight b) $ columnPeak b c
+
+-- | Calculate the height of each column
+columnHeights :: Board -> [Int]
+columnHeights b = map (columnHeight b) $ [0..w - 1]
+  where w = boardWidth b
+
+-- | Calculate the aggregate height of the board
+aggregateHeight :: Board -> Int
+aggregateHeight = sum . columnHeights
+
+-- | Find the completed rows in the board
+completeRows :: Board -> [Int]
+completeRows b = filter (rowCompleted b) [h - 1, h - 2..0]
+  where h = boardHeight b
+
+-- | Calculate the number of complete rows in the board
+numCompleteRows :: Board -> Int
+numCompleteRows = length . completeRows
+
+-- | Find the holes in a column of the board
+columnHoles :: Board -> Int -> [Cell]
+columnHoles b c = filter isHole $ boardColumn b c
+  where isHole c = not (occupied b c) && cellHeight b c < columnHeight b (cellColumn c)
+
+-- | Calculate the number of holes in the board
+holes :: Board -> Int
+holes b = sum $ map (length . columnHoles b) $ [0..w-1]
+  where w = boardWidth b
+
+-- | Calculate the bumpiness of the top of the board
+bumpiness :: Board -> Int
+bumpiness b = sum $ map (abs . uncurry (-)) $ zip hs (tail $ hs)
+  where hs = columnHeights b
 
 ------------------------------------------------------------------------
 -- Utilities to render the current game state
