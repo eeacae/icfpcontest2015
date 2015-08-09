@@ -287,6 +287,14 @@ bumpiness :: Board -> Int
 bumpiness b = sum $ map (abs . uncurry (-)) $ zip hs (tail $ hs)
   where hs = columnHeights b
 
+-- | Calculate heuristic on board
+heuristic :: Double -> Double -> Double -> Double -> Board -> Double
+heuristic u v w x b =
+  u * (fromIntegral $ aggregateHeight b) +
+  v * (fromIntegral $ numCompleteRows b) +
+  w * (fromIntegral $ holes b) +
+  x * (fromIntegral $ bumpiness b)
+
 ------------------------------------------------------------------------
 -- Utilities to render the current game state
 
