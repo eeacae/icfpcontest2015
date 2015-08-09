@@ -15,6 +15,7 @@ import           Data.Text (Text)
 import           Data.Vector (Vector)
 import qualified Data.Vector as V
 import           GHC.Arr (Ix (..))
+import           Control.DeepSeq(NFData(..))
 
 import           Batcave.Commands
 import           Test.QuickCheck
@@ -158,6 +159,11 @@ data Solution = Solution {
     , solutionTag  :: !(Maybe Text)
     , solutionCmds :: ![Command]
     } deriving (Show, Eq)
+
+instance NFData Solution where
+    rnf Solution{..} = rnf solutionCmds `seq`
+                       rnf solutionTag  `seq`
+                       solutionProb + unSeed solutionSeed `seq` ()
 
 ------------------------------------------------------------------------
 -- Aeson Instances

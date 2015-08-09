@@ -46,7 +46,7 @@ run :: Options -> IO ()
 run o@Options{..} = do
     threads <- maybe getNumCapabilities return limitCores
     ps <- mapM loadProblemFile problems
-    outputAll . concat $ parMap rpar (solve phrases) (catMaybes ps)
+    outputAll . concat $ parMap rdeepseq (solve phrases) (catMaybes ps)
   where
     solve :: [String] -> Problem -> [Solution]
     -- Must add power words when rendering json (we do not have a
