@@ -1,6 +1,7 @@
 -- | Breadth first search for locking moves
 module Batcave.BFS
 (
+    validMoves,
     allLockingPositions,
     bfs,
     singleton

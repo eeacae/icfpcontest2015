@@ -14,7 +14,7 @@ import qualified Data.Vector as V
 import           System.Environment (getArgs)
 
 import           Batcave.RunGame (Game(..), initGame, stepGame, gameScore)
-import qualified Batcave.Solver.Lucky as Lucky
+import qualified Batcave.Solver.FloRida as FloRida
 import           Batcave.Types
 
 ------------------------------------------------------------------------
@@ -26,7 +26,7 @@ main = do
       []       -> putStrLn "Usage: dump PROBLEM"
       (path:_) -> do
         problem <- readProblem path
-        L.putStrLn (A.encode (encodeFrames Lucky.solve problem))
+        L.putStrLn (A.encode (encodeFrames FloRida.solve problem))
 
 ------------------------------------------------------------------------
 
