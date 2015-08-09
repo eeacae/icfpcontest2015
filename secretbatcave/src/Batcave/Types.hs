@@ -3,20 +3,22 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Batcave.Types where
 
 import           Control.Applicative
-import           Control.Monad       (mzero)
-import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
-                                      object, (.:), (.=))
-import qualified Data.Vector as V
+import           Control.Monad (mzero)
+import           Data.Aeson (FromJSON(..), ToJSON(..), Value(..), object, (.:), (.=))
 import           Data.Array
 import           Data.Monoid
-import           Data.Vector         (Vector)
-import           GHC.Arr             (Ix (..))
+import           Data.Text (Text)
+import           Data.Vector (Vector)
+import qualified Data.Vector as V
+import           GHC.Arr (Ix (..))
 
 import           Batcave.Commands
 import           Test.QuickCheck
+
 ------------------------------------------------------------------------
 
 -- | Identifies a cell, either on the board or within a unit.
@@ -48,6 +50,13 @@ data Unit = Unit {
 
 ------------------------------------------------------------------------
 
+-- | Problem/solution seeds.
+newtype Seed = Seed { unSeed :: Int }
+  deriving (Eq, Ord, Show)
+
+
+------------------------------------------------------------------------
+
 -- | The game configuration.
 data Problem = Problem {
 
@@ -75,7 +84,7 @@ data Problem = Problem {
   , problemSourceLength :: !Int
 
     -- | How to generate the source and how many games to play.
-  , problemSourceSeeds  :: !(Vector Int)
+  , problemSourceSeeds  :: !(Vector Seed)
 
   } deriving (Eq, Ord, Show)
 
@@ -140,14 +149,15 @@ inBounds = inRange . bounds . unBoard
 newtype GameScore = GameScore { unGameScore :: Int }
   deriving (Eq, Show, Num)
 
+------------------------------------------------------------------------
+
 -- | A solution to a particular problem case.
-data Solution = Solution
-    { solutionProb :: !Int
-    , solutionSeed :: !Int
-    , solutionTag  :: Maybe String
-    , solutionCmds :: [Command]
-    }
-  deriving (Show, Eq)
+data Solution = Solution {
+      solutionProb :: !Int
+    , solutionSeed :: !Seed
+    , solutionTag  :: !(Maybe Text)
+    , solutionCmds :: ![Command]
+    } deriving (Show, Eq)
 
 ------------------------------------------------------------------------
 -- Aeson Instances
@@ -169,14 +179,14 @@ instance FromJSON Problem where
                                    <*> o .: "height"
                                    <*> o .: "filled"
                                    <*> o .: "sourceLength"
-                                   <*> o .: "sourceSeeds"
+                                   <*> (V.map Seed <$> o .: "sourceSeeds")
     parseJSON _          = mzero
 
 instance ToJSON Solution where
     toJSON Solution{..} = object $
                       [ "problemId" .= solutionProb
-                      , "seed" .= solutionSeed
-                      , "solution" .= solutionCmds
+                      , "seed"      .= unSeed solutionSeed
+                      , "solution"  .= solutionCmds
                       ] <> maybe [] (\v -> ["tag" .= v]) solutionTag
 
 ------------------------------------------------------------------------

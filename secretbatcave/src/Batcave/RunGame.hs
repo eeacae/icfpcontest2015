@@ -1,127 +1,105 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Batcave.RunGame where
+{-# OPTIONS_GHC -Wall #-}
 
-import Batcave.Types
-import Batcave.Commands
-import Batcave.Hex
-import Batcave.Random
+module Batcave.RunGame
+    ( Game(..)
+    , initGame
+    , stepGame
+    , gameScore
 
-import Control.Applicative
-import Control.Monad.Except
-import Control.Monad.State
-import Data.Maybe
-import qualified Data.Vector as V
-import Data.Void
+    -- * TODO move to a different module?
+    , scorePhrases
+    ) where
 
-import Data.List
-import Data.Word
+import           Batcave.Commands
+import           Batcave.Hex
+import           Batcave.Random
+import           Batcave.Types
 
+import           Data.List
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Vector as V
 
--- types to run the game
+------------------------------------------------------------------------
+-- Types
 
--- | overall game state
+-- | Overall game state.
 data Game = Game {
-      source     :: [Unit] -- ^ all coming units, relative coordinates
-    , current    :: Maybe Unit
-    , board      :: Board -- Board state
-    -- , history -- we probably want that at some point
-    , cmds       :: [Command] -- ^ all remaining commands for the game
-    , unitScores :: [UnitScore] -- ^ for final scoring, leftmost==newest
-    }
+      gameSource :: ![Unit]       -- ^ All coming units, relative coordinates
+    , gameUnit   :: !(Maybe Unit) -- ^ The current unit in play
+    , gameBoard  :: !Board        -- ^ Board state
+    , gameScores :: ![UnitScore]  -- ^ For final scoring, leftmost==newest
+    } deriving (Eq, Show)
+
+data UnitScore = UnitScore {
+      scoreSize  :: Int -- ^ Size of the scoring unit
+    , scoreLines :: Int -- ^ Lines removed with this unit score
+    } deriving (Eq, Show)
 
 data GameError = InvalidProblem Text
   deriving (Eq, Show)
 
-data UnitScore = UnitScore {
-      usSize  :: Int -- ^ size of the scoring unit
-    , usLines :: Int -- ^ lines removed with this unit score 
-    }
-
-------------------------------------------------------------
--- running a problem and a matching solution
-
-runSolution :: Problem  -- ^ supplies board and units
-            -> Solution -- ^ supplies seed and commands
-            -> [T.Text] -- ^ phrases of power
-            -> Either GameError GameScore
--- TODO return anything else that might be useful?
-runSolution problem solution@Solution{..} phrases
-    = (Right . score . runGame) =<< start
-  where
-    score end = GameScore $
-        totalScore (unitScores end)
-      + scorePhrases phrases solutionCmds
-
-    start = initGame problem solution
 
 ------------------------------------------------------------
 
-initGame :: Problem -> Solution -> Either GameError Game
-initGame p@Problem{..} Solution{..} = do
-    b <- board
-    Right $ initGame' b source solutionCmds
+-- | Try to initialise a game.
+initGame :: Problem -> Seed -> Either GameError Game
+initGame p@Problem{..} seed = do
+    board  <- makeBoard
+    source <- makeSource
+    Right (Game source Nothing board [])
   where
-    board | problemId /= solutionProb
-                = flail "solution ID does not match problem ID"
-          | otherwise
-                = maybe (flail "Invalid board size") Right (initialBoard p)
+    makeBoard = maybe (flail "Invalid board size") Right (initialBoard p)
 
-    source | not (solutionSeed `V.elem` problemSourceSeeds)
-                = error "solution seed not in problem"
-           | otherwise
-                = take problemSourceLength $
-                  unitSeq solutionSeed problemUnits
+    makeSource
+      | validSeed = return (take problemSourceLength (unitSequence seed problemUnits))
+      | otherwise = flail "Solution seed not in problem"
+
+    validSeed = seed `V.elem` problemSourceSeeds
 
     flail = Left . InvalidProblem
 
-unitSeq :: Int -> V.Vector Unit -> [Unit]
-unitSeq seed units = map (\i -> units V.! i) rs
-    where l  = length units
-          rs = map ((`mod` l) . fromIntegral) (randoms (fromIntegral seed))
+unitSequence :: Seed -> V.Vector Unit -> [Unit]
+unitSequence seed units = map (units V.!) rs
+  where
+    n  = V.length units
+    rs = map ((`mod` n) . fromIntegral) (randoms s)
+    s  = fromIntegral (unSeed seed)
 
-initGame' :: Board -> [Unit] -> [Command] -> Game
-initGame' initial_board us cs =
-    Game {
-      source = us
-    , current = Nothing
-    , board = initial_board
-    , cmds = cs
-    , unitScores = []
-    }
 
 ------------------------------------------------------------
 
+-- | Run a single step of the game.
 stepGame :: Command -> Game -> Maybe Game
 stepGame cmd game@Game{..}
 
     -- No current unit, grab one from the source.
-    | Nothing         <- current
-    , (fresh:source') <- source
-    , spawn           <- spawnUnit fresh board
+    | Nothing        <- gameUnit
+    , (fresh:source) <- gameSource
+    , spawn          <- spawnUnit fresh gameBoard
 
-    = stepGame cmd $ game { source  = source'
-                          , current = Just spawn }
+    = stepGame cmd $ game { gameSource  = source
+                          , gameUnit = Just spawn }
 
 
     -- Next board will be legal, so move
     | Just _    <- nextBoard
     , Just next <- nextUnit
 
-    = Just $ game { current = Just next }
+    = Just $ game { gameUnit = Just next }
 
 
     -- Next board is not legal, but current board is ok, so lock
-    | Nothing             <- nextBoard
-    , Just (board', rows) <- clearBoard <$> currentBoard
-    , Just score          <- unitScore rows <$> current
+    | Nothing            <- nextBoard
+    , Just (board, rows) <- clearBoard <$> currentBoard
+    , Just score         <- makeScore rows <$> gameUnit
 
-    = Just $ game { current    = Nothing
-                  , board      = board'
-                  , unitScores = score : unitScores }
+    = Just $ game { gameUnit = Nothing
+                  , gameBoard   = board
+                  , gameScores  = score : gameScores }
 
 
     -- Current board is not legal, game over
@@ -129,159 +107,96 @@ stepGame cmd game@Game{..}
 
     = Nothing
 
+
+    -- This shouldn't happen, dump the game state if it does.
+    | otherwise
+
+    = error ("stepGame: my brain just exploded:\n" ++ show game)
+
   where
-    nextUnit = applyCommand cmd <$> current
+    nextUnit = applyCommand cmd <$> gameUnit
 
-    currentBoard = current  >>= \u -> placeUnit u board
-    nextBoard    = nextUnit >>= \u -> placeUnit u board
+    currentBoard = gameUnit >>= \u -> placeUnit u gameBoard
+    nextBoard    = nextUnit >>= \u -> placeUnit u gameBoard
 
-    unitScore rows unit = UnitScore {
-          usSize  = V.length (unitMembers unit)
-        , usLines = rows
-        }
+    makeScore rows unit = UnitScore {
+        scoreSize  = V.length (unitMembers unit)
+      , scoreLines = rows
+      }
+
 
 ------------------------------------------------------------
+-- Scoring
 
-data EndOfGame = OutOfUnits | OutOfCommands | CantPlaceUnit
-  deriving (Eq, Show)
-
-runGame :: Game -> Game
-runGame game = flip execState game (runExceptT runGameInternal)
-
--- | Get the next unit from the queue.
-popUnit :: (MonadState Game m, MonadError EndOfGame m) => m Unit
-popUnit = do
-  state <- get
-  case source state of
-    (u:us) -> do
-      put $ state {source = us}
-      return u
-    [] -> throwError OutOfUnits
-
--- | Position the unit in the top centre.
--- Throw CantPlaceUnit if it's not placeable.
-positionUnit :: (MonadState Game m, MonadError EndOfGame m) =>
-  Unit -> m Unit
-positionUnit = undefined
--- TODO: use a method in Batcave.Hex to implement this.
-
--- | Get the next command from the queue.
-popCommand :: (MonadState Game m, MonadError EndOfGame m) => m Command
-popCommand = do
-  state <- get
-  case cmds state of
-    (c:cs) -> do
-      put $ state {cmds = cs}
-      return c
-    [] -> throwError OutOfCommands
-
--- | Record the score data for the current unit.
-pushUnitScore :: (MonadState Game m) => UnitScore -> m ()
-pushUnitScore uScore =
-    modify (\g -> g{unitScores = uScore : unitScores g})
-
--- | Runs the game within the monad until running out of commands/units.
-runGameInternal :: (MonadState Game m, MonadError EndOfGame m) => m Void
-runGameInternal = do
-  u <- popUnit >>= positionUnit
-  u' <- moveUntilLocked u
-  lockPiece u'
-  lines_scored <- clearLines
-  pushUnitScore UnitScore {
-    usSize = V.length $ unitMembers u,
-    usLines = lines_scored
-  }
-  runGameInternal
-
--- | Locks a piece into place.
--- Precondition: unitPlaceable right now.
--- WARNING: pattern match fail otherwise!
-lockPiece :: (MonadState Game m) => Unit -> m ()
-lockPiece u = modify (mapBoard $ fromJust . placeUnit u)
-  where mapBoard f gamestate = gamestate {board = f $ board gamestate}
-
--- | Scores any lines that are visible
--- Returns # lines scored.
-clearLines :: (MonadState Game m) => m Int
-clearLines = do
-  gamestate <- get
-  let (newBoard, lines_cleared) = clearBoard $ board gamestate
-  put $ gamestate {board = newBoard}
-  return lines_cleared
-
--- | Moves a unit until it is locked in place.
-moveUntilLocked :: (MonadState Game m, MonadError EndOfGame m) => Unit -> m Unit
-moveUntilLocked unit = do
-  -- precondition: unitPlaceable right now.
-  b <- board <$> get
-  c <- popCommand
-  let unit' = applyCommand c unit
-  if unitPlaceable b unit'
-    then moveUntilLocked unit'
-    else return unit
--- TODO: QuickCheck property: return value should be unitPlaceable 
-
-------------------------------------------------------------
--- scoring
-
--- given per-unitscore scores
-{-
-move_score = points + line_bonus
+-- | Score for a game.
+--
+--   Can be called any time during running it if required.
+--
+--   **This does not include scores for power phrases.**
+--
+--   NOTE: gameScores are stored right-to-left.
+--
+--   Specification:
+--
+--     move_score = points + line_bonus
+--       where
+--         points      = size + 100 * (1 + ls) * ls / 2
+--         line_bonus  = if ls_old > 1
+--                       then floor ((ls_old - 1) * points / 10)
+--                       else 0
+--
+gameScore :: Game -> GameScore
+gameScore Game{..} = GameScore score
   where
-  points = size + 100 * (1 + ls) * ls / 2
-  line_bonus  = if ls_old > 1
-                then floor ((ls_old - 1) * points / 10)
-                else 0
--}
-moveScore :: (Int, Int)    -- ^ accumulator, last line count
-              -> UnitScore  -- ^ current scoring 
-              -> (Int, Int) -- ^ accumulator, lines counted
-moveScore (acc, usLines_prev) UnitScore{..}
-    = (acc + points + line_bonus, usLines)
-  where points      = usSize
-                         + 50 * (1 + ls) * ls
-                      -- + 100 * (1 + ls) * ls / 2
-        line_bonus  = if ls_old > 1
-                      then floor ((ls_old - 1) * fromIntegral points / 10)
-                      else 0
-        ls_old      = fromIntegral usLines_prev
-        ls          = fromIntegral usLines
+    (MoveScore score _) = foldl' moveScore (MoveScore 0 0) (reverse gameScores)
 
--- | total score as a fold of a UnitScores list
-totalScore :: [UnitScore] -> Int
-totalScore = fst . foldl' moveScore (0,0)
+data MoveScore = MoveScore !Int !Int
 
--- | score for a game (can be called any time during running it if
--- required) Note that unitScores are built right-to-left
-currentGameScore :: Game -> GameScore
-currentGameScore Game{..} = GameScore $ totalScore (reverse unitScores)
-
--- power phrase score for a sequence of commands
-{-
- power_scorep = 2 * lenp * repsp + power_bonusp
+-- | Calculate the score for a single movement.
+moveScore :: MoveScore -- ^ accumulator, last line count
+          -> UnitScore -- ^ current scoring
+          -> MoveScore -- ^ accumulator, lines counted
+moveScore (MoveScore acc scoreLines_prev) UnitScore{..}
+    = MoveScore (acc + points + bonus) scoreLines
   where
-  power_bonusp = if repsp > 0
-                 then 300
-                 else 0
--}
+    points = scoreSize + 50  * (1 + ls) * ls
+                    -- + 100 * (1 + ls) * ls / 2
 
--- | power score for a given count/repetitions
-powerScore :: Int    -- ^ phrase length
-               -> Int -- ^ repetitions
-               -> Int
-powerScore len reps = 2 * len * reps + power_bonus
-  where power_bonus = if reps > 0
-                      then 300
-                      else 0
+    bonus | ls_old > 1 = (ls_old - 1) * points `div` 10
+          | otherwise  = 0
 
--- | converts commands to canonical text and phrases to canoncical
--- text, then counts and maps the score function over the counts)
-scorePhrases :: [T.Text]   -- ^ list of phrases (18 at most)
-             -> [Command]  -- ^ all commands
-             -> Int        -- ^ total power score
+    ls_old = scoreLines_prev
+    ls     = scoreLines
+
+
+------------------------------------------------------------------------
+-- Power phrase scoring
+--
+-- TODO This should maybe be in a separate module?
+--
+-- Specification:
+--
+--   power_scorep = 2 * lenp * repsp + power_bonusp
+--     where
+--       power_bonusp = if repsp > 0 then 300 else 0
+--
+
+-- | Converts commands to canonical text and phrases to canoncical text,
+--   then counts and maps the score function over the counts)
+scorePhrases :: [Text]    -- ^ List of phrases (18 at most)
+             -> [Command] -- ^ All commands
+             -> Int       -- ^ Total power score
 scorePhrases ps cs = sum (zipWith powerScore (map T.length ps) counts)
-    where cs'    = commandsToText cs
-          ps'    = map canonicalizeCommand ps
-          counts = map (`T.count` cs') ps'
-          -- This is inefficient (multiple traversals). Maybe OK?
+  where
+    cs'    = commandsToText cs
+    ps'    = map canonicalizeCommand ps
+    counts = map (`T.count` cs') ps'
+    -- This is inefficient (multiple traversals). Maybe OK?
 
+-- | Power score for a given count/repetitions.
+powerScore :: Int -- ^ Phrase length
+           -> Int -- ^ Repetitions
+           -> Int
+powerScore len reps = 2 * len * reps + bonus
+  where
+    bonus = if reps > 0 then 300 else 0

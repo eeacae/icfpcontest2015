@@ -13,7 +13,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
 
-import           Batcave.RunGame (Game(..), initGame, stepGame, currentGameScore)
+import           Batcave.RunGame (Game(..), initGame, stepGame, gameScore)
 import qualified Batcave.Solver.Lucky as Lucky
 import           Batcave.Types
 
@@ -43,7 +43,7 @@ encodeFrames solve problem@Problem{..} =
 
     commands = V.fromList solutionCmds
 
-    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solution)
+    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solutionSeed)
 
     runStep (game1, cmds)
         | V.null cmds = Nothing
@@ -51,8 +51,8 @@ encodeFrames solve problem@Problem{..} =
 
 encodeGame :: Game -> A.Value
 encodeGame game@Game{..} =
-    A.object [ "locked"  .= fromBoard board
-             , "current" .= fromMaybe V.empty (fromCurrent <$> current)
+    A.object [ "locked"  .= fromBoard gameBoard
+             , "current" .= fromMaybe V.empty (fromCurrent <$> gameUnit)
              , "score"   .= takeScore game ]
   where
     fromBoard = V.fromList
@@ -64,7 +64,7 @@ encodeGame game@Game{..} =
                 . unitMembers
 
     takeScore = unGameScore
-              . currentGameScore
+              . gameScore
 
     full (cell, Full) = Just (coord cell)
     full _            = Nothing
