@@ -5,9 +5,13 @@
 
 module Batcave.RunGame
     ( Game(..)
-    , initGame
-    , stepGame
     , gameScore
+
+    -- * Game running
+    , initGame
+    , runGame
+    , stepGame
+    , ensureUnit
 
     -- * TODO move to a different module?
     , scorePhrases
@@ -44,6 +48,7 @@ data GameError = InvalidProblem Text
 
 
 ------------------------------------------------------------
+-- Game initialisation
 
 -- | Try to initialise a game.
 initGame :: Problem -> Seed -> Either GameError Game
@@ -71,58 +76,84 @@ unitSequence seed units = map (units V.!) rs
 
 
 ------------------------------------------------------------
+-- Stepping through the game states
+
+-- | Run a number of steps of the game.
+runGame :: [Command] -> Game -> Maybe Game
+runGame cmds game = foldl' loop (Just game) cmds
+  where
+    loop :: Maybe Game -> Command -> Maybe Game
+    loop Nothing  _   = Nothing
+    loop (Just g) cmd = stepGame cmd g
 
 -- | Run a single step of the game.
 stepGame :: Command -> Game -> Maybe Game
-stepGame cmd game@Game{..}
+stepGame cmd game0 = step =<< ensureUnit game0
+  where
+    step game@Game{..}
+        -- Next board will be legal, so move
+        | Just _    <- nextBoard
+        , Just next <- nextUnit
+
+        = Just $ game { gameUnit = Just next }
+
+
+        -- Next board is not legal, but current board is ok, so lock
+        | Nothing            <- nextBoard
+        , Just (board, rows) <- clearBoard <$> currentBoard
+        , Just score         <- makeScore rows <$> gameUnit
+
+        = Just $ game { gameUnit = Nothing
+                      , gameBoard   = board
+                      , gameScores  = score : gameScores }
+
+
+        -- Current board is not legal, game over
+        | Nothing <- currentBoard
+
+        = Nothing
+
+
+        -- This shouldn't happen, dump the game state if it does.
+        | otherwise
+
+        = error ("stepGame: my brain just exploded:\n" ++ show game)
+
+      where
+        nextUnit = applyCommand cmd <$> gameUnit
+
+        currentBoard = gameUnit >>= \u -> placeUnit u gameBoard
+        nextBoard    = nextUnit >>= \u -> placeUnit u gameBoard
+
+        makeScore rows unit = UnitScore {
+            scoreSize  = V.length (unitMembers unit)
+          , scoreLines = rows
+          }
+
+
+-- | Ensure that the game has a current unit.
+ensureUnit :: Game -> Maybe Game
+ensureUnit game@Game{..}
 
     -- No current unit, grab one from the source.
     | Nothing        <- gameUnit
     , (fresh:source) <- gameSource
     , spawn          <- spawnUnit fresh gameBoard
 
-    = stepGame cmd $ game { gameSource  = source
-                          , gameUnit = Just spawn }
+    = Just (game { gameSource  = source
+                 , gameUnit = Just spawn })
 
 
-    -- Next board will be legal, so move
-    | Just _    <- nextBoard
-    , Just next <- nextUnit
+    -- Already have a unit, nothing to do!
+    | Just _ <- gameUnit
 
-    = Just $ game { gameUnit = Just next }
-
-
-    -- Next board is not legal, but current board is ok, so lock
-    | Nothing            <- nextBoard
-    , Just (board, rows) <- clearBoard <$> currentBoard
-    , Just score         <- makeScore rows <$> gameUnit
-
-    = Just $ game { gameUnit = Nothing
-                  , gameBoard   = board
-                  , gameScores  = score : gameScores }
+    = Just game
 
 
-    -- Current board is not legal, game over
-    | Nothing <- currentBoard
-
-    = Nothing
-
-
-    -- This shouldn't happen, dump the game state if it does.
+    -- No units left in the source, game over!
     | otherwise
 
-    = error ("stepGame: my brain just exploded:\n" ++ show game)
-
-  where
-    nextUnit = applyCommand cmd <$> gameUnit
-
-    currentBoard = gameUnit >>= \u -> placeUnit u gameBoard
-    nextBoard    = nextUnit >>= \u -> placeUnit u gameBoard
-
-    makeScore rows unit = UnitScore {
-        scoreSize  = V.length (unitMembers unit)
-      , scoreLines = rows
-      }
+    = Nothing
 
 
 ------------------------------------------------------------
