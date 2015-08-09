@@ -112,7 +112,7 @@ spawnUnit u b = mapUnit shift u
     yShift = -uyMin
 
     bxMid = bxMin + (bxMax - bxMin) `div` 2
-    uxMid = uxMin + (uxMax - uxMin) `div` 2
+    uxMid = uxMin + (uxMax - uxMin + 1) `div` 2
 
     Bounds (Cell bxMin byMin) (Cell bxMax byMax) = boardBounds b
     Bounds (Cell uxMin uyMin) (Cell uxMax uyMax) = unitBounds u
