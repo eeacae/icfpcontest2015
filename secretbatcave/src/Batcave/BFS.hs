@@ -12,7 +12,7 @@ import           Batcave.Types
 import           Data.Foldable
 import           Data.Map         (Map)
 import qualified Data.Map         as Map
-import           Data.Maybe       (listToMaybe)
+import           Data.Maybe       (listToMaybe, mapMaybe)
 import           Data.Monoid
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
@@ -41,6 +41,13 @@ append queue to_queue = foldl' (flip put) queue to_queue
 -- (they move onto a filled cell or off the board).
 allLockingPositions :: Unit -> Board -> ([Unit], Map Unit (Command, Unit))
 allLockingPositions start = bfs (singleton start) mempty
+
+-- | Return a list of the valid moves for the given unit on a board.
+-- The valid moves contain the unit's final position on the board, and a list
+-- of commands that will lock the unit in that position.
+validMoves :: Unit -> Board -> [(Unit, [Command])]
+validMoves u b = mapMaybe (backtrack ps) us
+  where (us, ps) = bfs (singleton u) mempty b
 
 -- | Find the final position of a unit and the list of commands that lead to
 -- locking that unit in position.
