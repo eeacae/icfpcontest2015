@@ -21,7 +21,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
 
-import           Batcave.RunGame (Game(..), initGame, stepGame, currentGameScore)
+import           Batcave.RunGame (Game(..), initGame, stepGame, gameScore)
 import qualified Batcave.Solver.Lucky as Lucky
 import           Batcave.Types
 
@@ -58,14 +58,16 @@ encodeFrames solve problem@Problem{..} =
 
     commands = V.fromList solutionCmds
 
-    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solution)
+    seed = problemSourceSeeds V.! 0
 
-    board0 = board game0
+    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem seed)
+
+    board0 = gameBoard game0
 
     step1 = fromJust $ stepGame (V.head commands) game0
 
     initial_unit :: Unit
-    initial_unit = fromJust (current step1)
+    initial_unit = fromJust (gameUnit step1)
 
     searched :: [Unit]
     searched = Set.toList $ bfs (singleton initial_unit) mempty board0
@@ -89,7 +91,7 @@ encodeGame us =
                 . unitMembers
 
     takeScore = unGameScore
-              . currentGameScore
+              . gameScore
 
     full (cell, Full) = Just (coord cell)
     full _            = Nothing

@@ -1,7 +1,9 @@
 -- | Breadth first search for locking moves
 module Batcave.BFS
 (
-    allLockingPositions
+    allLockingPositions,
+    singleton,
+    bfs
 ) where
 
 import           Batcave.Commands
@@ -44,12 +46,12 @@ bfs (Queue [] []) _ _ = mempty
 bfs queue visited board =
     to_output <> bfs queue'' visited' board
   where
-    (unit, queue') = get queue
     (valid_children, invalid_children) = partitionChildren unit board
     to_queue = Set.difference valid_children visited
     to_output = Set.difference invalid_children visited
     visited' = Set.union valid_children $ Set.union invalid_children visited
-    queue'' = append to_queue queue
+    (unit, queue') = get queue
+    queue'' = append to_queue queue'
 
 -- | All legal and illegal moves from the given position
 partitionChildren :: Unit -> Board -> (Set Unit, Set Unit)
