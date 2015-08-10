@@ -11,10 +11,13 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.Monoid ((<>))
 import qualified Data.Set as Set
+import           Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
 import           System.IO (stderr)
 
+import           Batcave.Commands (textToCommands')
 import           Batcave.RunGame (Game(..), ActiveUnit(..), GameEnd(..))
 import           Batcave.RunGame (initGame, stepGame, gameScore, unGameScore)
 import qualified Batcave.Solver.FloRida as FloRida
@@ -44,7 +47,8 @@ main = do
 
     solvers = [ ("lucky",     Lucky.solve)
               , ("florida",   FloRida.solve)
-              , ("nostrovia", Nostrovia.solve) ]
+              , ("nostrovia", Nostrovia.solve)
+              , ("example6",  const problem6_seed0_example) ]
 
 ------------------------------------------------------------------------
 
@@ -100,3 +104,34 @@ readProblem path = do
     return (either die id (A.eitherDecode bs))
   where
     die msg = error ("readProblem: failed reading json: " ++ msg)
+
+problem6_seed0_example :: Solution
+problem6_seed0_example = Solution {
+      solutionProb = 6
+    , solutionSeed = Seed 0
+    , solutionTag  = Just "Galois Example"
+    , solutionCmds = textToCommands' commands
+    }
+  where
+    commands :: Text
+    commands = T.concat [
+        "iiiiiiiimmiiiiiimimmiiiimimimmimimimimmimimimeemimeeeemimim"
+      , "imimiiiiiimmeemimimimimiimimimmeemimimimmeeeemimimimmiiiiii"
+      , "pmiimimimeeemmimimmemimimimiiiiiimeeemimimimimeeemimimimmii"
+      , "iimemimimmiiiipimeeemimimmiiiippmeeeeemimimimiiiimmimimeemi"
+      , "mimeeeemimimiiiipmeeemmimmiimimmmimimeemimimimmeeemimiiiiip"
+      , "miiiimmeeemimimiiiipmmiipmmimmiippimemimeeeemimmiipppmeeeee"
+      , "mimimmiimipmeeeemimimiimmeeeeemimmeemimmeeeemimiiippmiippmi"
+      , "iimmiimimmmmmeeeemimmiippimmimimeemimimimmeemimimimmeemimim"
+      , "imiimimimeeemmimimmmiiiiipimeemimimimmiiiimimmiiiiiiiimiimi"
+      , "mimimeeemmimimimmiiiiiimimmemimimimimmimimimeemimiiiiiiiimi"
+      , "iiimimimiimimimmimmimimimimmeeeemimimimimmmimimimimeemimimi"
+      , "mimmmemimimmiiiiiiimiimimimmiiiiiimeeeeemimimimimmimimimmmm"
+      , "emimimmeeeemimimimmiimimimmiiiiiipmeeeeemimimimimmiiiiimmem"
+      , "imimimimmmmimimmeeeemimimimimeeemimimimmiimimimeeemmimimmii"
+      , "iiiiimimiiiiiimimmiiiiiiiimmimimimimiiiimimimeemimimimimmee"
+      , "emimimimimiiiiiiimiiiimimmemimimimmeemimimimeeemmimimmiiiii"
+      , "immiiiipmmiiimmmimimeemimimeeemmimmiiiippmiiiimiiippimiimim"
+      , "eemimimeeeemimimiiiipmeemimimiimiimimmimeeemimimmippipmmiim"
+      , "emimmipimeeeemimmeemimiippimeeeeemimimmmimmmeeeemimimiiipim"
+      , "miipmemimmeeeemimimiipipimmipppimeeemimmpppmmpmeeeeemimmemm" ]
