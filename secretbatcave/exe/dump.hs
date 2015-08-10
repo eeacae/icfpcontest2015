@@ -19,7 +19,7 @@ import           System.IO (stderr)
 
 import           Batcave.Commands (textToCommands')
 import           Batcave.RunGame (Game(..), ActiveUnit(..), GameEnd(..))
-import           Batcave.RunGame (initGame, stepGame, gameScore, unGameScore)
+import           Batcave.RunGame (initGame, stepGame, ensureUnit, gameScore, unGameScore)
 import qualified Batcave.Solver.FloRida as FloRida
 import qualified Batcave.Solver.Lucky as Lucky
 import qualified Batcave.Solver.Nostrovia as Nostrovia
@@ -65,11 +65,15 @@ encodeFrames problem@Problem{..} solution@Solution{..} =
 
     game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solutionSeed)
 
-    runStep (game1, cmds)
-        | V.null cmds = Nothing
-        | otherwise   = case stepGame (V.head cmds) game1 of
-                          Left end -> traceShow end Nothing
-                          Right  g -> Just (g, (g, V.tail cmds))
+    runStep (game1@Game{..}, cmds0)
+        | V.null cmds0 = Nothing
+        | otherwise    =
+            case gameActive of
+              Nothing -> continue cmds0          (ensureUnit game1)
+              Just _  -> continue (V.tail cmds0) (stepGame (V.head cmds0) game1)
+      where
+        continue _     (Left end) = traceShow end Nothing
+        continue cmds1 (Right  g) = Just (g, (g, cmds1))
 
 encodeGame :: Game -> A.Value
 encodeGame game@Game{..} =
