@@ -47,13 +47,13 @@ data Game = Game {
     } deriving (Eq, Show)
 
 data ActiveUnit = ActiveUnit {
-      activeUnit    :: Unit     -- ^ The current active unit
-    , activeHistory :: Set Unit -- ^ The history of states we have been in previously
+      activeUnit    :: !Unit       -- ^ The current active unit
+    , activeHistory :: !(Set Unit) -- ^ The history of states we have been in previously
     } deriving (Eq, Show)
 
 data UnitScore = UnitScore {
-      scoreSize  :: Int -- ^ Size of the scoring unit
-    , scoreLines :: Int -- ^ Lines removed with this unit score
+      scoreSize  :: !Int -- ^ Size of the scoring unit
+    , scoreLines :: !Int -- ^ Lines removed with this unit score
     } deriving (Eq, Show)
 
 newtype GameScore = GameScore {
