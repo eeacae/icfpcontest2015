@@ -4,6 +4,8 @@ TEAM_ID=276
 API_TOKEN="99yl4NyoUwnOmc+iSbPE8C4XxIfjKDRWEu6YHZvcshU="
 SOLUTION=$1
 
+date
+
 curl \
   --user :$API_TOKEN \
   -X POST \
