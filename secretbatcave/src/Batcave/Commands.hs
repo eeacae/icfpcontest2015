@@ -8,7 +8,8 @@ module Batcave.Commands
     Command(..),
     canonicalizeCommand,
     textToCommands',
-    commandsToText
+    commandsToText,
+    charToCommand
 ) where
 
 import           Data.Aeson
@@ -35,6 +36,7 @@ instance Arbitrary RotationDirection where
 data Command
     = Move CompassDirection
     | Rotate RotationDirection
+    | PowerWord Text
   deriving (Eq, Show)
 
 instance NFData Command 
@@ -49,11 +51,14 @@ instance Arbitrary Command where
 --    > toJSON [ Move W, Move E, Move SW, Move SE,
 --    >         Rotate Clockwise, Rotate CounterClockwise]
 --    String "pbaldk"
+-- commandsToText :: [Command] -> Text
+-- commandsToText cmds = T.unfoldrN (length cmds) step cmds
+--   where
+--     step (x:xs) = Just (commandToChar x, xs)
+--     step [] = Nothing
+
 commandsToText :: [Command] -> Text
-commandsToText cmds = T.unfoldrN (length cmds) step cmds
-  where
-    step (x:xs) = Just (commandToChar x, xs)
-    step [] = Nothing
+commandsToText cmds = T.concat $ map commandToText cmds
 
 textToCommands :: Text -> [Command]
 textToCommands = T.foldr step []
@@ -84,6 +89,14 @@ textToCommands' = textToCommands   -- use canonical char.s
 canonicalizeCommand :: T.Text -> T.Text
 canonicalizeCommand = commandsToText . textToCommands'
 
+commandToText :: Command -> Text
+commandToText (Move W)                  = T.pack "p"
+commandToText (Move E)                  = T.pack "b"
+commandToText (Move SW)                 = T.pack "a"
+commandToText (Move SE)                 = T.pack "l"
+commandToText (Rotate Clockwise)        = T.pack "d"
+commandToText (Rotate CounterClockwise) = T.pack "d"
+commandToText (PowerWord s)             = s
 
 -- | Maps a command to just one of the possible single character
 -- representations
@@ -98,13 +111,21 @@ commandToChar (Rotate CounterClockwise) = 'k'
 -- | Inverse of charToCommand, partial; we assume that we are operating under
 -- the image of commandToChar.
 charToCommand :: Char -> Command
-charToCommand 'p' = Move W
+charToCommand c | c `elem` "p'!.03" = Move W
+                | c `elem` "bcefy2" = Move E
+                | c `elem` "aghij4" = Move SW
+                | c `elem` "lmno 5" = Move SE
+                | c `elem` "dqrvz1" = Rotate Clockwise
+                | c `elem` "kstuwx" = Rotate CounterClockwise 
+                | otherwise         = error $ "unknown character while decoding Command: " ++ [c]
+{-
 charToCommand 'b' = Move E
 charToCommand 'a' = Move SW
 charToCommand 'l' = Move SE
 charToCommand 'd' = Rotate Clockwise
 charToCommand 'k' = Rotate CounterClockwise
 charToCommand x   = error $ "unknown character while decoding Command: " ++ [x]
+-}
 
 instance ToJSON [Command] where
     toJSON = String . commandsToText

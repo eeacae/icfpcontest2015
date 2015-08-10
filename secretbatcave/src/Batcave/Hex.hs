@@ -8,7 +8,7 @@ import           Data.Char (toUpper)
 import           Data.List (intersperse, maximumBy)
 import           Data.Ord (comparing)
 import qualified Data.Set as Set
-
+import qualified Data.Text as T
 import           Batcave.Commands
 import           Batcave.Types
 
@@ -92,9 +92,9 @@ unitPlaceable :: Board -> Unit -> Bool
 unitPlaceable b u = unitInBounds b u && unitUnoccupied b u
 
 -- | Place a unit on a board. Return @Nothing@ if the placement is invalid.
-placeUnit :: Unit -> Board -> Maybe Board
-placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
-              | otherwise         = Nothing
+placeUnit :: (Unit, Unit) -> Board -> Maybe Board
+placeUnit (u, u') b | unitPlaceable b u' = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
+                    | otherwise          = Nothing
 
 -- | Move a unit to the location it would be spawned on the given board.
 spawnUnit :: Unit -> Board -> Maybe Unit
@@ -234,13 +234,22 @@ rotateUnitCW u = mapUnit (rotateCellCW $ unitPivot u) u
 rotateUnitCCW :: Unit -> Unit
 rotateUnitCCW u = mapUnit (rotateCellCCW $ unitPivot u) u
 
-applyCommand :: Command -> Unit -> Unit
-applyCommand (Move E) = translateUnitEast
-applyCommand (Move W) = translateUnitWest
-applyCommand (Move SE) = translateUnitSouthEast
-applyCommand (Move SW) = translateUnitSouthWest
-applyCommand (Rotate Clockwise) = rotateUnitCW
-applyCommand (Rotate CounterClockwise) = rotateUnitCCW
+-- fst is the actual resulting unit to be placed.
+-- snd is a faux-unit which represents all the spots
+-- that need to be clear in order to execute this
+-- move.
+applyCommand :: Command -> Unit -> (Unit, Unit)
+applyCommand (Move E)  u = let m = translateUnitEast      u in (m,m)
+applyCommand (Move W)  u = let m = translateUnitWest      u in (m,m)
+applyCommand (Move SE) u = let m = translateUnitSouthEast u in (m,m)
+applyCommand (Move SW) u = let m = translateUnitSouthWest u in (m,m)
+applyCommand (Rotate Clockwise)        u = let m = rotateUnitCW  u in (m,m)
+applyCommand (Rotate CounterClockwise) u = let m = rotateUnitCCW u in (m,m)
+applyCommand (PowerWord s) u = T.foldl f (u,u) s
+    where
+        f (u', u'') c = let (nu', nu'') = applyCommand (charToCommand c) u'
+                        in (nu', u'' `mergeUnit` nu'')
+        mergeUnit u1 u2 = makeUnit (unitMembers u1 `Set.union` unitMembers u2) (unitPivot u1)
 
 -- | Find the highest occupied cell in a column of a board
 columnPeak :: Board -> Int -> Maybe Cell
