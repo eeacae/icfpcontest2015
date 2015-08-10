@@ -42,6 +42,13 @@
       return null;
     };
 
+    var apply = function(xy, f) {
+      var hex = get(xy);
+      if (hex) {
+        f(hex);
+      }
+    };
+
     var fromGalois = function(xy) {
       return [ xy[0] + Math.floor((1 + xy[1]) / 2), xy[1] ]
     };
@@ -73,15 +80,21 @@
       });
 
       frame.locked.forEach(function(xy) {
-        get(fromGalois(xy)).locked = true;
+        apply(fromGalois(xy), function(h) {
+          h.locked = true;
+        });
       });
 
       frame.members.forEach(function(xy) {
-        get(fromGalois(xy)).member = true;
+        apply(fromGalois(xy), function(h) {
+          h.member = true;
+        });
       });
 
       if (frame.pivot) {
-        get(fromGalois(frame.pivot)).pivot = true;
+        apply(fromGalois(frame.pivot), function(h) {
+          h.pivot = true;
+        });
       }
 
       grid.Hexes.forEach(function(h) {
