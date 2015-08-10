@@ -97,7 +97,7 @@ commandToText (Move E)                  = T.pack "b"
 commandToText (Move SW)                 = T.pack "a"
 commandToText (Move SE)                 = T.pack "l"
 commandToText (Rotate Clockwise)        = T.pack "d"
-commandToText (Rotate CounterClockwise) = T.pack "d"
+commandToText (Rotate CounterClockwise) = T.pack "k"
 commandToText (PhraseOfPower phrase)    = phrase
 
 -- | Inverse of charToCommand, partial; we assume that we are operating under
