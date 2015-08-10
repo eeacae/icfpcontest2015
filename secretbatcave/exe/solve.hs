@@ -8,6 +8,7 @@ import           Control.Monad
 import           Control.Parallel.Strategies
 import           Control.DeepSeq
 import           Control.Exception
+import           System.IO -- buffering
 import           Data.Aeson
 import qualified Data.ByteString.Lazy        as BS
 import           Data.List
@@ -61,6 +62,7 @@ run o@Options{..} = do
     _ <- mapM (forkIO . solveTask) (catMaybes ps)
     
     -- main thread reads results (lazily from channel) and adds them to output
+    hSetBuffering stdout LineBuffering
     outputAll =<< concat <$> getChanContents solutions
     
     outputAll . concat $ parMap rdeepseq (solve phrases) (catMaybes ps)
