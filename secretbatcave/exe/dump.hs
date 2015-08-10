@@ -19,6 +19,7 @@ import           Batcave.RunGame (Game(..), ActiveUnit(..), GameEnd(..))
 import           Batcave.RunGame (initGame, stepGame, gameScore, unGameScore)
 import qualified Batcave.Solver.FloRida as FloRida
 import qualified Batcave.Solver.Lucky as Lucky
+import qualified Batcave.Solver.Nostrovia as Nostrovia
 import           Batcave.Types
 
 import           Debug.Trace
@@ -29,12 +30,21 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-      []       -> putStrLn "Usage: dump PROBLEM"
-      (path:_) -> do
+      (solver:path:[]) -> do
         problem <- readProblem path
-        let solution = FloRida.solve problem
+        let solution = solveWith solver problem
         L.putStrLn (A.encode (encodeFrames problem solution))
         L.hPutStrLn stderr (A.encode (V.singleton solution))
+
+      _ -> putStrLn "Usage: dump SOLVER PROBLEM"
+  where
+    solveWith solver = case lookup solver solvers of
+        Nothing -> error ("Unknown solver: " ++ show solver ++ ", valid solvers are: " ++ show (map fst solvers))
+        Just s  -> s
+
+    solvers = [ ("lucky",     Lucky.solve)
+              , ("florida",   FloRida.solve)
+              , ("nostrovia", Nostrovia.solve) ]
 
 ------------------------------------------------------------------------
 
