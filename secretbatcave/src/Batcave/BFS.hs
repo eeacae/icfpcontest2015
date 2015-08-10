@@ -66,19 +66,20 @@ bfs (Queue [] []) _ _ = mempty
 bfs queue visited board =
     (Map.keys to_output, visited') <> bfs queue'' visited' board
   where
-    (valid_children, invalid_children) = partitionChildren unit board
-    to_queue = Map.difference valid_children visited
-    to_output = Map.difference invalid_children visited
-    visited' = Map.union visited $ Map.union valid_children invalid_children
-    (unit, queue') = get queue
-    queue'' = append queue' $ Map.keys to_queue
+    (valid_children,
+     invalid_children) = partitionChildren unit board
+    to_queue           = Map.difference valid_children visited
+    to_output          = Map.difference invalid_children visited
+    visited'           = Map.union visited $ Map.union valid_children invalid_children
+    (unit, queue')     = get queue
+    queue''            = append queue' $ Map.keys to_queue
 
 -- | All legal and illegal moves from the given position
 partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
 partitionChildren unit board =
     -- Find all legal moves from current unit
-    let moves = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
-        valid_moves = filter (unitPlaceable board . fst) moves
+    let moves         = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
+        valid_moves   = filter (unitPlaceable board . fst) moves
         invalid_moves = filter (not . unitPlaceable board .fst) moves
     in (Map.fromList valid_moves, Map.fromList invalid_moves)
   where
