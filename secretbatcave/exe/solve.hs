@@ -59,13 +59,12 @@ run o@Options{..} = do
     let solveTask t = do s <- evaluate $ force (solve phrases t)
                          writeChan solutions s
 
-    _ <- mapM (forkIO . solveTask) (catMaybes ps)
+    ids <- mapM (forkIO . solveTask) (catMaybes ps)
     
     -- main thread reads results (lazily from channel) and adds them to output
     hSetBuffering stdout LineBuffering
-    outputAll =<< concat <$> getChanContents solutions
-    
-    outputAll . concat $ parMap rdeepseq (solve phrases) (catMaybes ps)
+    outputAll =<< concat . take (length ids) <$> getChanContents solutions
+
   where
     solve :: [String] -> Problem -> [Solution]
     -- Must add power words when rendering json (we do not have a
