@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -Wall #-}
 
 module Batcave.Hex where
 
@@ -18,15 +19,15 @@ data Cubic = Cubic !Int !Int !Int
 
 -- | Create the initial board described by a game configuration.
 initialBoard :: Problem -> Maybe Board
-initialBoard p = (flip (%//) filled . emptyBoard)  <$> bounds
+initialBoard p = (flip (%//) filled . emptyBoard) <$> limits
  where 
-  bounds = boundingCells (problemWidth p) (problemHeight p)
+  limits = boundingCells (problemWidth p) (problemHeight p)
   filled = [(c, Full) | c <- Set.toList (problemFilled p)]
 
 -- | Clear a row from a board.
 clearRow :: Int -> Board -> Board
 clearRow r b = b %// ([(Cell x y, b %! (Cell x (y - 1))) | x <- xs, y <- ys] ++ [(Cell x 0, Empty) | x <- xs])
-  where (w, h) = boardDimensions b
+  where (w, _) = boardDimensions b
         xs     = [0..w - 1]
         ys     = [1..r]
 
@@ -65,12 +66,12 @@ boardColumn b c | 0 <= c && c < w  = [Cell c y | y <- [0..h - 1]]
 -- | Test whether a row in a board is completed.
 rowCompleted :: Board -> Int -> Bool
 rowCompleted b r = all (occupied b) [Cell x r | x <- [0..w - 1]]
-  where (w, h)   = boardDimensions b
+  where (w, _)   = boardDimensions b
 
 -- | Clear completed rows from a board.
 clearBoard :: Board -> (Board, Int)
 clearBoard b = (b', length rs)
-  where (w, h) = boardDimensions b
+  where (_, h) = boardDimensions b
         rs     = filter (rowCompleted b) [h - 1, h - 2..0]
         b'     = foldr clearRow b rs
 
@@ -107,8 +108,8 @@ spawnUnit u b = mapUnit shift u
     bxMid = bxMin + (bxMax - bxMin) `div` 2
     uxMid = uxMin + (uxMax - uxMin + 1) `div` 2
 
-    Bounds (Cell bxMin byMin) (Cell bxMax byMax) = boardBounds b
-    Bounds (Cell uxMin uyMin) (Cell uxMax uyMax) = unitBounds u
+    Bounds (Cell bxMin     _) (Cell bxMax _) = boardBounds b
+    Bounds (Cell uxMin uyMin) (Cell uxMax _) = unitBounds u
 
 -- | Find the bounds of a unit.
 unitBounds :: Unit -> Bounds
@@ -130,7 +131,7 @@ cellToCubic (Cell c r) = Cubic x y z
 
 -- | Convert a Cubic to a Cell.
 cubicToCell :: Cubic -> Cell
-cubicToCell (Cubic x y z) = Cell c r
+cubicToCell (Cubic x _ z) = Cell c r
   where c = x + (z - (abs z `mod` 2)) `div` 2
         r = z
 
@@ -165,12 +166,12 @@ rotateCubicVectorCCW (Cubic x y z) = Cubic (-y) (-z) (-x)
 
 -- | Rotate a Cubic clockwise around a central Cubic
 rotateCubicCW :: Cubic -> Cubic -> Cubic
-rotateCubicCW centre@(Cubic x' y' z') cell@(Cubic x y z) = Cubic (x' + x'') (y' + y'') (z' + z'')
+rotateCubicCW (Cubic x' y' z') (Cubic x y z) = Cubic (x' + x'') (y' + y'') (z' + z'')
   where (Cubic x'' y'' z'') = rotateCubicVectorCW $ Cubic (x - x') (y - y') (z - z')
 
 -- | Rotate a Cubic counter clockwise around a central Cubic
 rotateCubicCCW :: Cubic -> Cubic -> Cubic
-rotateCubicCCW centre@(Cubic x' y' z') cell@(Cubic x y z) = Cubic (x' + x'') (y' + y'') (z' + z'')
+rotateCubicCCW (Cubic x' y' z') (Cubic x y z) = Cubic (x' + x'') (y' + y'') (z' + z'')
   where (Cubic x'' y'' z'') = rotateCubicVectorCCW $ Cubic (x - x') (y - y') (z - z')
 
 -- | Perform operation on a Cell via a conversion to Cubic.
@@ -268,7 +269,7 @@ numCompleteRows = length . completeRows
 -- | Find the holes in a column of the board
 columnHoles :: Board -> Int -> [Cell]
 columnHoles b c = filter isHole $ boardColumn b c
-  where isHole c = not (occupied b c) && cellHeight b c < columnHeight b (cellColumn c)
+  where isHole d = not (occupied b d) && cellHeight b d < columnHeight b (cellColumn d)
 
 -- | Calculate the number of holes in the board
 holes :: Board -> Int
