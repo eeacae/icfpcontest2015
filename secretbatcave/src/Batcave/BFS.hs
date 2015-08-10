@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- | Breadth first search for locking moves
 module Batcave.BFS
@@ -23,8 +24,14 @@ import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 
+import Debug.Trace
+
+------------------------------------------------------------------------
+-- Queue
+
 -- | Okasaki's, example for queues
 data Queue a = Queue [a] [a]
+    deriving (Show)
 
 -- | Append to queue
 put :: a -> Queue a -> Queue a
@@ -43,57 +50,97 @@ singleton a = Queue [a] []
 append :: Foldable f => Queue a -> f a -> Queue a
 append queue to_queue = foldl' (flip put) queue to_queue
 
+------------------------------------------------------------------------
+-- Breadth First Search
+
+data Path = Path {
+      pathUnit    :: !Unit
+    , pathHistory :: !(Set Unit)
+    }
+
+instance Show Path where
+    showsPrec p Path{..} = showsPrec p pathUnit
+
+instance Eq Path where
+    (==) (Path x _) (Path y _) = x == y
+
+instance Ord Path where
+    compare (Path x _) (Path y _) = compare x y
+
+
 -- | All possible last moves that lock a unit, none of these are valid moves
 -- (they move onto a filled cell or off the board).
-allLockingPositions :: Unit -> Board -> ([Unit], Map Unit (Command, Unit))
-allLockingPositions start = bfs (singleton start) (Map.singleton start (undefined, start))
+allLockingPositions :: Unit -> Board -> ([Unit], Map Path (Command, Unit))
+allLockingPositions start = bfs (singleton path) (Map.singleton path (undefined, start))
+  where
+    path = Path start (Set.singleton start)
 
 -- | Return a list of the valid moves for the given unit on a board.
 -- The valid moves contain the unit's final position on the board, and a list
 -- of commands that will lock the unit in that position.
 validMoves :: Unit -> Board -> [(Unit, [Command])]
 validMoves u b
-    | unitPlaceable b u = mapMaybe (backtrack ps) us
+    | unitPlaceable b u = if null moves
+                          then error "validMoves: no valid moves"
+                          else moves
+
     | otherwise         = error "validMoves: cannot start from a non-placeable unit"
   where
-    (us, ps) = bfs (singleton u) (Map.singleton u (undefined, u)) b
+    (us, ps) = bfs (singleton path) (Map.singleton path (undefined, u)) b
+    moves    = mapMaybe (backtrack ps) us
+    path     = Path u (Set.singleton u)
 
 -- | Find the final position of a unit and the list of commands that lead to
 -- locking that unit in position.
-backtrack :: Map Unit (Command, Unit) -> Unit -> Maybe (Unit, [Command])
+backtrack :: Map Path (Command, Unit) -> Unit -> Maybe (Unit, [Command])
 backtrack ps u = fmap (\v -> (snd v, reverse $ map fst ucs')) $ listToMaybe ucs
-  where ucs                 = backtrack' ps u
-        ucs'                = head ucs : (map snd $ takeWhile (\((_, u), (_, u')) -> u /= u') $ zip ucs $ tail ucs)
-        backtrack' ps u     = maybe [] backtrack'' $ Map.lookup u ps
-        backtrack'' (m, u') = (m, u') : backtrack' ps u'
+  where
+    ucs  = backtrack' ps u
+    ucs' = head ucs : (map snd $ takeWhile (\((_, u), (_, u')) -> u /= u') $ zip ucs $ tail ucs)
+
+    -- NOTE: the Eq/Ord instance for Path only looks at the unit (not the history)
+    backtrack' ps u     = maybe [] backtrack'' $ Map.lookup (Path u Set.empty) ps
+    backtrack'' (m, u') = (m, u') : backtrack' ps u'
 
 -- | Unoptimised BFS over possible moves, accumulates moves that lock the unit,
 -- queues up any valid move that has not already been visited.
-bfs :: Queue Unit -> Map Unit (Command, Unit) -> Board -> ([Unit], Map Unit (Command, Unit))
-bfs (Queue [] []) _ _ = mempty
-bfs queue visited board =
-    (Map.keys to_output, visited') <> bfs queue'' visited' board
+bfs :: Queue Path -> Map Path (Command, Unit) -> Board -> ([Unit], Map Path (Command, Unit))
+bfs (Queue [] []) _ _     = mempty
+bfs queue0 visited0 board =
+    (map pathUnit (Map.keys to_output), visited1) <> bfs queue2 visited1 board
   where
-    (valid_children,
-     invalid_children) = partitionChildren unit board
-    to_queue           = Map.difference valid_children visited
-    to_output          = Map.difference invalid_children visited
-    visited'           = Map.union visited $ Map.union valid_children invalid_children
-    (unit, queue')     = get queue
-    queue''            = append queue' $ Map.keys to_queue
+    (valid_children, invalid_children) = partitionChildren path board
+
+    to_queue       = valid_children   `Map.difference` visited0
+    to_output      = invalid_children `Map.difference` visited0
+    visited1       = Map.unions [visited0, valid_children, invalid_children]
+
+    (path, queue1) = get queue0
+    queue2         = append queue1 (Map.keys to_queue)
 
 -- | All legal and illegal moves from the given position
-partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
-partitionChildren unit0 board =
+partitionChildren :: Path
+                  -> Board
+                  -> (Map Path (Command, Unit),
+                      Map Path (Command, Unit))
+
+partitionChildren (Path unit0 hist0) board =
     -- Find all legal moves from current unit
     let
-        apply cmd = (valid, (unit1, (cmd, unit0)))
+        apply cmd
+            | legal     = Just (valid, (path1, (cmd, unit0)))
+            | otherwise = Nothing
           where
             valid   = appPlaceable board applied
-            unit1   = appUnit applied
+            legal   = Set.null (Set.delete unit0 hist0 `Set.intersection` hist1)
+            --legal   = Set.null (hist0 `Set.intersection` hist1)
+
+            path1   = Path unit1 (Set.union hist0 hist1)
+            unit1   = appUnit            applied
+            hist1   = appHistory         applied
             applied = applyCommand cmd unit0
 
-        moves = map apply commands
+        moves = mapMaybe apply commands
 
         (valid_moves, invalid_moves) = partition fst moves
 
@@ -101,8 +148,8 @@ partitionChildren unit0 board =
         Map.fromList (map snd invalid_moves))
   where
     commands = reverse
-        -- [ PhraseOfPower "ei!"
-        [ Move SW
+        [ PhraseOfPower "ei!"
+        , Move SW
         , Move SE
         , Move W
         , Move E
