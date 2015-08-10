@@ -163,10 +163,10 @@ stepGame cmd game0 = step =<< ensureUnit game0
         gameUnit = activeUnit <$> gameActive
         nextUnit = applyCommand cmd <$> gameUnit
 
-        currentBoard = gameUnit >>= \u -> placeUnit (u,u) gameBoard
-        nextBoard    = nextUnit >>= \u -> placeUnit u gameBoard
+        currentBoard = gameUnit >>= \u   -> placeUnit u   gameBoard
+        nextBoard    = nextUnit >>= \app -> placeApp  app gameBoard
 
-        nextActive = join (moveNext <$> (fst <$> nextUnit) <*> gameActive)
+        nextActive = join (moveNext <$> (appUnit <$> nextUnit) <*> gameActive)
 
         makeScore rows unit = UnitScore {
             scoreSize  = Set.size (unitMembers unit)

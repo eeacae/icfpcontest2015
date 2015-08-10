@@ -57,7 +57,7 @@ allMoves game0 =
                               (\g -> cmds ++ allMoves g) game2
 
 myHeuristic :: Board -> Unit -> Double
-myHeuristic b u = maybe (error msg) (heuristic (-0.510066) 0.760666 (-0.35663) (-0.184483)) (placeUnit (u,u) b)
+myHeuristic b u = maybe (error msg) (heuristic (-0.510066) 0.760666 (-0.35663) (-0.184483)) (placeUnit u b)
   where
     msg = "myHeuristic: received non-placeable unit!"
 

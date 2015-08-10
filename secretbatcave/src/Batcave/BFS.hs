@@ -10,14 +10,16 @@ module Batcave.BFS
 import           Batcave.Commands
 import           Batcave.Hex
 import           Batcave.Types
+import           Control.Arrow (first)
 import           Data.Foldable
-import           Data.Map         (Map)
-import qualified Data.Map         as Map
-import           Data.Maybe       (listToMaybe, mapMaybe)
+import           Data.List (partition)
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.Maybe (listToMaybe, mapMaybe)
 import           Data.Monoid
-import           Data.Set         (Set)
-import qualified Data.Set         as Set
-import qualified Data.Text        as T
+import           Data.Set (Set)
+import qualified Data.Set as Set
+import qualified Data.Text as T
 
 -- | Okasaki's, example for queues
 data Queue a = Queue [a] [a]
@@ -82,17 +84,20 @@ bfs queue visited board =
 partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
 partitionChildren unit board =
     -- Find all legal moves from current unit
-    let moves         = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
-        valid_moves   = map (\((m,_),c) -> (m,c)) $ filter (unitPlaceable board . snd . fst) moves
-        invalid_moves = map (\((m,_),c) -> (m,c)) $ filter (not . unitPlaceable board . snd . fst) moves
-    in (Map.fromList valid_moves, Map.fromList invalid_moves)
+    let moves           = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
+
+        (valid_moves,
+         invalid_moves) = partition (appPlaceable board . fst) moves
+
+    in (Map.fromList (map (first appUnit) valid_moves),
+        Map.fromList (map (first appUnit) invalid_moves))
   where
-    commands =
-        [ Move W
-        , Move E
+    commands = reverse
+        [ PowerWord (T.pack "ei!")
         , Move SW
         , Move SE
+        , Move W
+        , Move E
         , Rotate Clockwise
         , Rotate CounterClockwise
-        , PowerWord $ T.pack "ei!"
         ]

@@ -51,11 +51,6 @@ instance Arbitrary Command where
 --    > toJSON [ Move W, Move E, Move SW, Move SE,
 --    >         Rotate Clockwise, Rotate CounterClockwise]
 --    String "pbaldk"
--- commandsToText :: [Command] -> Text
--- commandsToText cmds = T.unfoldrN (length cmds) step cmds
---   where
---     step (x:xs) = Just (commandToChar x, xs)
---     step [] = Nothing
 
 commandsToText :: [Command] -> Text
 commandsToText cmds = T.concat $ map commandToText cmds
@@ -118,14 +113,6 @@ charToCommand c | c `elem` "p'!.03" = Move W
                 | c `elem` "dqrvz1" = Rotate Clockwise
                 | c `elem` "kstuwx" = Rotate CounterClockwise 
                 | otherwise         = error $ "unknown character while decoding Command: " ++ [c]
-{-
-charToCommand 'b' = Move E
-charToCommand 'a' = Move SW
-charToCommand 'l' = Move SE
-charToCommand 'd' = Rotate Clockwise
-charToCommand 'k' = Rotate CounterClockwise
-charToCommand x   = error $ "unknown character while decoding Command: " ++ [x]
--}
 
 instance ToJSON [Command] where
     toJSON = String . commandsToText

@@ -7,6 +7,7 @@ import           Data.Array
 import           Data.Char (toUpper)
 import           Data.List (intersperse, maximumBy)
 import           Data.Ord (comparing)
+import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import           Batcave.Commands
@@ -75,26 +76,49 @@ clearBoard b = (b', length rs)
         rs     = filter (rowCompleted b) [h - 1, h - 2..0]
         b'     = foldr clearRow b rs
 
+-- | Test whether a set of cells are within the bounds of a board.
+cellsInBounds :: Board -> Set Cell -> Bool
+cellsInBounds b = all (inBounds b)
+
 -- | Test whether all of the members of a unit are within the bounds of a board.
 unitInBounds :: Board -> Unit -> Bool
-unitInBounds b u = all (inBounds b) $ unitMembers u
+unitInBounds b = cellsInBounds b . unitMembers
 
 -- | Test whether a cell is occupied on a board.
 occupied :: Board -> Cell -> Bool
 occupied b c = b %! c == Full
 
+-- | Test whether a set of cells are unoccupied.
+cellsUnoccupied :: Board -> Set Cell -> Bool
+cellsUnoccupied b = all (not . occupied b)
+
 -- | Test whether all of the members of a unit are unoccupied.
 unitUnoccupied :: Board -> Unit -> Bool
-unitUnoccupied b u = all (not . occupied b) $ unitMembers u
+unitUnoccupied b = cellsUnoccupied b . unitMembers
+
+-- | Test whether a set of cells can be placed on a board.
+cellsPlaceable :: Board -> Set Cell -> Bool
+cellsPlaceable b cs = cellsInBounds b cs && cellsUnoccupied b cs
 
 -- | Test whether a unit can be placed on a board.
 unitPlaceable :: Board -> Unit -> Bool
-unitPlaceable b u = unitInBounds b u && unitUnoccupied b u
+unitPlaceable b = cellsPlaceable b . unitMembers
+
+-- | Test whether a command application can be placed on a board.
+appPlaceable :: Board -> CommandApp -> Bool
+appPlaceable b = cellsPlaceable b . appMove
 
 -- | Place a unit on a board. Return @Nothing@ if the placement is invalid.
-placeUnit :: (Unit, Unit) -> Board -> Maybe Board
-placeUnit (u, u') b | unitPlaceable b u' = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
-                    | otherwise          = Nothing
+placeUnit :: Unit -> Board -> Maybe Board
+placeUnit u b
+  | unitPlaceable b u = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
+  | otherwise         = Nothing
+
+-- | Place a unit from a command application on a board. Return @Nothing@ if the placement is invalid.
+placeApp :: CommandApp -> Board -> Maybe Board
+placeApp (CommandApp u cs) b
+  | cellsPlaceable b cs = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
+  | otherwise           = Nothing
 
 -- | Move a unit to the location it would be spawned on the given board.
 spawnUnit :: Unit -> Board -> Maybe Unit
@@ -234,22 +258,34 @@ rotateUnitCW u = mapUnit (rotateCellCW $ unitPivot u) u
 rotateUnitCCW :: Unit -> Unit
 rotateUnitCCW u = mapUnit (rotateCellCCW $ unitPivot u) u
 
--- fst is the actual resulting unit to be placed.
--- snd is a faux-unit which represents all the spots
--- that need to be clear in order to execute this
--- move.
-applyCommand :: Command -> Unit -> (Unit, Unit)
-applyCommand (Move E)  u = let m = translateUnitEast      u in (m,m)
-applyCommand (Move W)  u = let m = translateUnitWest      u in (m,m)
-applyCommand (Move SE) u = let m = translateUnitSouthEast u in (m,m)
-applyCommand (Move SW) u = let m = translateUnitSouthWest u in (m,m)
-applyCommand (Rotate Clockwise)        u = let m = rotateUnitCW  u in (m,m)
-applyCommand (Rotate CounterClockwise) u = let m = rotateUnitCCW u in (m,m)
-applyCommand (PowerWord s) u = T.foldl f (u,u) s
-    where
-        f (u', u'') c = let (nu', nu'') = applyCommand (charToCommand c) u'
-                        in (nu', u'' `mergeUnit` nu'')
-        mergeUnit u1 u2 = makeUnit (unitMembers u1 `Set.union` unitMembers u2) (unitPivot u1)
+------------------------------------------------------------------------
+-- Command Application
+
+data CommandApp = CommandApp {
+      appUnit :: !Unit       -- ^ result of applying a command
+    , appMove :: !(Set Cell) -- ^ cells that need to be clear in order to succeed
+    } deriving (Eq, Ord, Show)
+
+applyCommand :: Command -> Unit -> CommandApp
+applyCommand cmd orig = case cmd of
+    Move E                  -> simple (translateUnitEast      orig)
+    Move W                  -> simple (translateUnitWest      orig)
+    Move SE                 -> simple (translateUnitSouthEast orig)
+    Move SW                 -> simple (translateUnitSouthWest orig)
+    Rotate Clockwise        -> simple (rotateUnitCW           orig)
+    Rotate CounterClockwise -> simple (rotateUnitCCW          orig)
+    PowerWord s             -> T.foldl loop (simple orig) s
+  where
+    simple unit = CommandApp unit (unitMembers unit)
+
+    loop (CommandApp unit0 cells0) c =
+        let
+            CommandApp unit1 cells1 = applyCommand (charToCommand c) unit0
+        in
+            CommandApp unit1 (cells0 `Set.union` cells1)
+
+
+------------------------------------------------------------------------
 
 -- | Find the highest occupied cell in a column of a board
 columnPeak :: Board -> Int -> Maybe Cell
