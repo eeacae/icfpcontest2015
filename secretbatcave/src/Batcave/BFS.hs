@@ -100,12 +100,12 @@ partitionChildren unit0 board =
     in (Map.fromList (map snd valid_moves),
         Map.fromList (map snd invalid_moves))
   where
-    commands = -- reverse
+    commands = reverse
         -- [ PhraseOfPower "ei!"
-        [ Move W
-        , Move E
-        , Move SW
+        [ Move SW
         , Move SE
+        , Move W
+        , Move E
         , Rotate Clockwise
         , Rotate CounterClockwise
         ]
