@@ -1,0 +1,11 @@
+# ICFP contest 2015
+
+Submission by secretbatcave.
+
+# Dependencies
+
+The submission requires GHC 7.10, and the Makefile assumes that
+stack[0] is available in the PATH. It has been built and tested on Linux and OS
+X.
+
+[0] https://github.com/commercialhaskell/stack
