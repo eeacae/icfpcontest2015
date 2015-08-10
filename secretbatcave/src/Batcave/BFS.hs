@@ -86,17 +86,23 @@ bfs queue visited board =
 partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
 partitionChildren unit board =
     -- Find all legal moves from current unit
-    let moves           = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
+    let
+        moves = map apply commands
+
+        apply cmd = (ok, (appUnit app, (cmd, unit)))
+          where
+            app = applyCommand cmd unit
+            ok  = appPlaceable board app
 
         (valid_moves,
-         invalid_moves) = partition (appPlaceable board . fst) moves
+         invalid_moves) = partition fst moves
 
-    in (Map.fromList (map (first appUnit) valid_moves),
-        Map.fromList (map (first appUnit) invalid_moves))
+    in (Map.fromList (map snd valid_moves),
+        Map.fromList (map snd invalid_moves))
   where
     commands = reverse
-        [ PhraseOfPower "ei!"
-        , Move SW
+        -- [ PhraseOfPower "ei!"
+        [ Move SW
         , Move SE
         , Move W
         , Move E
