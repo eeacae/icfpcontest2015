@@ -6,6 +6,8 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Monad
 import           Control.Parallel.Strategies
+import           Control.DeepSeq
+import           Control.Exception
 import           Data.Aeson
 import qualified Data.ByteString.Lazy        as BS
 import           Data.List
@@ -48,6 +50,19 @@ run :: Options -> IO ()
 run o@Options{..} = do
     threads <- maybe getNumCapabilities return limitCores
     ps <- mapM loadProblemFile problems
+
+    -- run concurrent/parallel threads for each problem, using a channel to
+    -- capture and write results as they come in
+    solutions <- newChan
+
+    let solveTask t = do s <- evaluate $ force (solve phrases t)
+                         writeChan solutions s
+
+    _ <- mapM (forkIO . solveTask) (catMaybes ps)
+    
+    -- main thread reads results (lazily from channel) and adds them to output
+    outputAll =<< concat <$> getChanContents solutions
+    
     outputAll . concat $ parMap rdeepseq (solve phrases) (catMaybes ps)
   where
     solve :: [String] -> Problem -> [Solution]
