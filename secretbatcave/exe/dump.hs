@@ -30,7 +30,12 @@ import           Debug.Trace
 ------------------------------------------------------------------------
 
 powerPhrases :: [Text]
-powerPhrases = ["ei!", "yuggoth"]
+powerPhrases = [ "ei!"
+               , "yuggoth"
+               , "r'lyeh"
+               , "ph'nglui mglw'nafh cthulhu r'lyeh wgah'nagl fhtagn"
+               , "cthulhu fhtagn!"
+               ]
 
 ------------------------------------------------------------------------
 
