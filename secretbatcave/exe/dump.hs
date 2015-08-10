@@ -35,6 +35,9 @@ powerPhrases = [ "ei!"
                , "r'lyeh"
                , "ph'nglui mglw'nafh cthulhu r'lyeh wgah'nagl fhtagn"
                , "cthulhu fhtagn!"
+               , "davar"
+               , "aleister"
+               , "why is there a watermelon there"
                ]
 
 ------------------------------------------------------------------------
