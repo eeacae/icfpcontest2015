@@ -56,7 +56,7 @@ run o@Options{..} = do
     -- capture and write results as they come in
     solutions <- newChan
 
-    let solveTask t = do s <- evaluate $ force (solve phrases t)
+    let solveTask t = do s <- evaluate $ force (solve ["ei!"] t)
                          writeChan solutions s
 
     ids <- mapM (forkIO . solveTask) (catMaybes ps)
