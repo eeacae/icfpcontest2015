@@ -73,7 +73,8 @@ nextMove Game{..} = best
 unitSortOrder :: Unit -> Int
 unitSortOrder unit = sum ys
   where
-    ys = Set.map cellY
+    ys = map cellY
+       . Set.toList
        . unitMembers
        $ unit
 
