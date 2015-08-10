@@ -84,18 +84,18 @@ bfs queue visited board =
 
 -- | All legal and illegal moves from the given position
 partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Command, Unit))
-partitionChildren unit board =
+partitionChildren unit0 board =
     -- Find all legal moves from current unit
     let
+        apply cmd = (valid, (unit1, (cmd, unit0)))
+          where
+            valid   = appPlaceable board applied
+            unit1   = appUnit applied
+            applied = applyCommand cmd unit0
+
         moves = map apply commands
 
-        apply cmd = (ok, (appUnit app, (cmd, unit)))
-          where
-            app = applyCommand cmd unit
-            ok  = appPlaceable board app
-
-        (valid_moves,
-         invalid_moves) = partition fst moves
+        (valid_moves, invalid_moves) = partition fst moves
 
     in (Map.fromList (map snd valid_moves),
         Map.fromList (map snd invalid_moves))
