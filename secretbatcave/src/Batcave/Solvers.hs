@@ -45,6 +45,12 @@ solveWith solveGame name phrases problem@Problem{..}
 
           die x = error (unlines ["Solvers", T.unpack tag, show x])
 
+
+solvers :: [(String, [String] -> Problem -> [Solution])]
+solvers = (  "florida", useFloRida)
+          :( "nostrovia", useNostrovia)
+          : []
+
 useFloRida :: [String] -> Problem -> [Solution]
 useFloRida powerPhrases = solveWith FloRida.solveGame "flo-rida" (map T.pack powerPhrases)
 
