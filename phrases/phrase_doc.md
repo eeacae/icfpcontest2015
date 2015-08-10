@@ -16,9 +16,9 @@ In particular, `-` (hyphen) is *not* permitted.
 
 ### Candidate phrases
 
- * `Ia! Ia`
+ * `Ia! Ia!`
  * `R'lyeh`
-
+ * `Yuggoth`
 
 #### Strings from competition artifacts 
 
