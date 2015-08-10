@@ -116,9 +116,9 @@ placeUnit u b
 
 -- | Place a unit from a command application on a board. Return @Nothing@ if the placement is invalid.
 placeApp :: CommandApp -> Board -> Maybe Board
-placeApp (CommandApp u cs) b
-  | cellsPlaceable b cs = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
-  | otherwise           = Nothing
+placeApp app@(CommandApp u _) b
+  | appPlaceable b app = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
+  | otherwise          = Nothing
 
 -- | Move a unit to the location it would be spawned on the given board.
 spawnUnit :: Unit -> Board -> Maybe Unit
