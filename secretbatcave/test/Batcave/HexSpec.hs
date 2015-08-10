@@ -143,8 +143,8 @@ prop_rotateUnitCCWCWInverse u = u === (rotateUnitCW $ rotateUnitCCW u)
 
 prop_applyCommandCommutative :: Unit -> Command -> Command -> Property
 prop_applyCommandCommutative u c1 c2 =
-  ((applyCommand c1) . (applyCommand c2)) u ===
-  ((applyCommand c2) . (applyCommand c1)) u
+  ((fst . applyCommand c1) . (fst . applyCommand c2)) u ===
+  ((fst . applyCommand c2) . (fst . applyCommand c1)) u
 
 prop_clearBoardNumberOfCellsRemoved :: Board -> Property
 prop_clearBoardNumberOfCellsRemoved (Board b) =

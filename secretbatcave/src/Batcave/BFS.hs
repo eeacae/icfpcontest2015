@@ -17,6 +17,7 @@ import           Data.Maybe       (listToMaybe, mapMaybe)
 import           Data.Monoid
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
+import qualified Data.Text        as T
 
 -- | Okasaki's, example for queues
 data Queue a = Queue [a] [a]
@@ -82,8 +83,8 @@ partitionChildren :: Unit -> Board -> (Map Unit (Command, Unit), Map Unit (Comma
 partitionChildren unit board =
     -- Find all legal moves from current unit
     let moves         = zip (fmap (`applyCommand` unit) commands) $ zip commands $ repeat unit
-        valid_moves   = filter (unitPlaceable board . fst) moves
-        invalid_moves = filter (not . unitPlaceable board .fst) moves
+        valid_moves   = map (\((m,_),c) -> (m,c)) $ filter (unitPlaceable board . snd . fst) moves
+        invalid_moves = map (\((m,_),c) -> (m,c)) $ filter (not . unitPlaceable board . snd . fst) moves
     in (Map.fromList valid_moves, Map.fromList invalid_moves)
   where
     commands =
@@ -93,4 +94,5 @@ partitionChildren unit board =
         , Move SE
         , Rotate Clockwise
         , Rotate CounterClockwise
+        , PowerWord $ T.pack "ei!"
         ]
