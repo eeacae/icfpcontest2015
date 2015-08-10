@@ -101,7 +101,7 @@ makeUnit members pivot = Unit members pivot
 
 -- | Map over the cells in a unit.
 mapUnit :: (Cell -> Cell) -> Unit -> Unit
-mapUnit f (Unit ms p) = makeUnit (Set.map f ms) p
+mapUnit f (Unit ms p) = makeUnit (Set.map f ms) (f p)
 {-# INLINE mapUnit #-}
 
 -- | Perform a radix sort of an unboxed vector.
