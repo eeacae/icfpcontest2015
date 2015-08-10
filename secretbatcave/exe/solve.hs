@@ -20,6 +20,7 @@ data Options = Options
     { limitTime   :: Maybe Int
     , limitMemory :: Maybe Int
     , limitCores  :: Maybe Int
+    , useSolver   :: String
     , phrases     :: [String]
     , problems    :: [FilePath]
     }
@@ -30,6 +31,7 @@ parse = Options
         <$> option (Just <$> auto) ( short 't' <> metavar "T" <> help "Time limit" <> value Nothing)
         <*> option (Just <$> auto) ( short 'm' <> metavar "M" <> help "Memory limit" <> value Nothing)
         <*> option (Just <$> auto) ( short 'c' <> metavar "C" <> help "Cores" <> value Nothing)
+        <*> strOption              ( short 's' <> metavar "SOLVER" <> help "Solver" <> value "FloRida")
         <*> many (option str (short 'p' <> metavar "WORD" <> help "Word of power"))
         <*> some (option str (short 'f' <> metavar "FILE" <> help "Problem file"))
 
@@ -54,8 +56,9 @@ run o@Options{..} = do
     -- starting with the shortest word, such that longer ones are used
     -- where possible.
     solve _ = 
-        -- solver interface function defined in Batcave.Solvers:
-        useFloRida
+        -- solver interface function defined in Batcave.Solvers.solvers
+      fromMaybe useFloRida (lookup useSolver solvers)
+        -- useFloRida   (default)
         -- useNostrovia
 
     outputAll :: [Solution] -> IO ()

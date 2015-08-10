@@ -44,6 +44,12 @@ solveWith solveGame name problem@Problem{..}
 
           die x = error (unlines ["Solvers", T.unpack tag, show x])
 
+
+solvers :: [(String, Problem -> [Solution])]
+solvers = (  "florida", useFloRida)
+          :( "nostrovia", useNostrovia)
+          : []
+
 useFloRida :: Problem -> [Solution]
 useFloRida = solveWith FloRida.solveGame "flo-rida"
 
