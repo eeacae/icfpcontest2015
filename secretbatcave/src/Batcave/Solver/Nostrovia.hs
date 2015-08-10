@@ -6,7 +6,7 @@ module Batcave.Solver.Nostrovia (solve, solveGame) where
 
 import           Data.Function (on)
 import           Data.List (maximumBy)
-import           Data.Maybe (fromMaybe, fromJust)
+import           Data.Maybe (fromMaybe)
 import           Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -57,7 +57,9 @@ allMoves game0 =
                               (\g -> cmds ++ allMoves g) game2
 
 myHeuristic :: Board -> Unit -> Double
-myHeuristic b u = heuristic (-0.510066) 0.760666 (-0.35663) (-0.184483) $ fromJust $ placeUnit u b
+myHeuristic b u = maybe (error msg) (heuristic (-0.510066) 0.760666 (-0.35663) (-0.184483)) (placeUnit u b)
+  where
+    msg = "myHeuristic: received non-placeable unit!"
 
 nextMove :: Game -> [Command]
 nextMove Game{..} = best

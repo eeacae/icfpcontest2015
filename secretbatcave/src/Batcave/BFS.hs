@@ -47,8 +47,11 @@ allLockingPositions start = bfs (singleton start) (Map.singleton start (undefine
 -- The valid moves contain the unit's final position on the board, and a list
 -- of commands that will lock the unit in that position.
 validMoves :: Unit -> Board -> [(Unit, [Command])]
-validMoves u b = mapMaybe (backtrack ps) us
-  where (us, ps) = bfs (singleton u) (Map.singleton u (undefined, u)) b
+validMoves u b
+    | unitPlaceable b u = mapMaybe (backtrack ps) us
+    | otherwise         = error "validMoves: cannot start from a non-placeable unit"
+  where
+    (us, ps) = bfs (singleton u) (Map.singleton u (undefined, u)) b
 
 -- | Find the final position of a unit and the list of commands that lead to
 -- locking that unit in position.

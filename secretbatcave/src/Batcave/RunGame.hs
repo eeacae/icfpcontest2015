@@ -178,14 +178,8 @@ stepGame cmd game0 = step =<< ensureUnit game0
 ensureUnit :: Game -> Either GameEnd Game
 ensureUnit game@Game{..}
 
-    -- No current unit, grab one from the source.
-    | Nothing        <- gameActive
-    , (fresh:source) <- gameSource
-    , spawn          <- spawnUnit fresh gameBoard
-
-    = Right (game { gameSource = source
-                  , gameActive = Just (makeActive spawn) })
-
+    -- NOTE The order here is important, conditions lower down
+    --      are assuming conditions higher up have failed.
 
     -- Already have a unit, nothing to do!
     | Just _ <- gameActive
@@ -194,9 +188,23 @@ ensureUnit game@Game{..}
 
 
     -- No units left in the source, game over!
-    | otherwise
+    | [] <- gameSource
 
     = Left YouWin
+
+
+    -- No current unit, grab one from the source.
+    | (fresh:source) <- gameSource
+    , Just spawn     <- spawnUnit fresh gameBoard
+
+    = Right (game { gameSource = source
+                  , gameActive = Just (makeActive spawn) })
+
+
+    -- Cannot spawn unit, board must have overflowed :(
+    | otherwise
+
+    = Left BoardOverflow
 
 
 ------------------------------------------------------------

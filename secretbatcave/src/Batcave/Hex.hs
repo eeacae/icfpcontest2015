@@ -97,9 +97,13 @@ placeUnit u b | unitPlaceable b u = Just $ b %// [(c, Full) | c <- Set.toList (u
               | otherwise         = Nothing
 
 -- | Move a unit to the location it would be spawned on the given board.
-spawnUnit :: Unit -> Board -> Unit
-spawnUnit u b = mapUnit shift u
+spawnUnit :: Unit -> Board -> Maybe Unit
+spawnUnit u b
+    | unitPlaceable b spawned = Just spawned
+    | otherwise               = Nothing
   where
+    spawned = mapUnit shift u
+
     shift (Cell x y) = Cell (x + xShift) (y + yShift)
 
     xShift = bxMid - uxMid
