@@ -77,6 +77,7 @@ HT.Hexagon = function(id, x, y) {
     this.pivot     = false;
     this.disabled  = false;
     this.lastColor = null;
+    this.lastPivot = false;
 };
 
 /**
@@ -93,31 +94,39 @@ HT.Hexagon.prototype.draw = function(ctx) {
     if(this.member)
         nextColor = "#0099cc";
 
-    if(this.pivot)
-        nextColor = "#00cc99";
-
     if(this.disabled)
         nextColor = "#000000";
 
-    if(this.lastColor === nextColor) {
+    if(this.lastColor === nextColor &&
+       this.lastPivot === this.pivot) {
         return;
     }
 
+    this.lastColor  = nextColor;
+    this.lastPivot  = this.pivot;
+
     ctx.strokeStyle = "black";
     ctx.fillStyle   = nextColor;
-    this.lastColor  = nextColor;
 
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(this.Points[0].X, this.Points[0].Y);
-    for(var i = 1; i < this.Points.length; i++)
-    {
+    for(var i = 1; i < this.Points.length; i++) {
         var p = this.Points[i];
         ctx.lineTo(p.X, p.Y);
     }
     ctx.closePath();
     ctx.stroke();
     ctx.fill();
+
+    if(this.pivot) {
+      ctx.strokeStyle = "black";
+      ctx.fillStyle   = "black";
+      ctx.beginPath();
+      ctx.arc(this.MidPoint.X, this.MidPoint.Y, 10, 0, Math.PI*2, true);
+      ctx.closePath();
+      ctx.fill();
+    }
 };
 
 /**
