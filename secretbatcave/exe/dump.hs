@@ -35,12 +35,17 @@ main = do
     case args of
       (solver:path:[]) -> do
         problem <- readProblem path
-        let solution = solveWith solver problem
-        L.putStrLn (A.encode (encodeFrames problem solution))
+        let solution  = solveWith solver problem
+
+        L.putStrLn (A.encode (encodeFrames problem (roundtrip solution)))
         L.hPutStrLn stderr (A.encode (V.singleton solution))
 
       _ -> putStrLn "Usage: dump SOLVER PROBLEM"
   where
+    roundtrip solution = case A.eitherDecode (A.encode solution) of
+        Left  msg -> error ("failed to roundtrip solution: " ++ msg)
+        Right sln -> sln
+
     solveWith solver = case lookup solver solvers of
         Nothing -> error ("Unknown solver: " ++ show solver ++ ", valid solvers are: " ++ show (map fst solvers))
         Just s  -> s

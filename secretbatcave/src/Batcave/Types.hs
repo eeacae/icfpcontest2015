@@ -251,6 +251,13 @@ instance FromJSON Problem where
                                    <*> (V.map Seed <$> o .: "sourceSeeds")
     parseJSON _          = mzero
 
+instance FromJSON Solution where
+    parseJSON (Object o) = Solution <$> o .: "problemId"
+                                    <*> (Seed <$> o .: "seed")
+                                    <*> o .: "tag"
+                                    <*> o .: "solution"
+    parseJSON _          = mzero
+
 instance ToJSON Solution where
     toJSON Solution{..} = object $
                       [ "problemId" .= solutionProb
