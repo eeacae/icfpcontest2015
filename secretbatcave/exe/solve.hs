@@ -71,9 +71,9 @@ run o@Options{..} = do
     -- string here). Equivalent replacements in command sequence,
     -- starting with the shortest word, such that longer ones are used
     -- where possible.
-    solve _ = 
+    solve powerPhrases = 
         -- solver interface function defined in Batcave.Solvers.solvers
-      fromMaybe useFloRida (lookup useSolver solvers)
+      fromMaybe useFloRida (lookup useSolver solvers) powerPhrases
         -- useFloRida   (default)
         -- useNostrovia
 

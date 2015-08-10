@@ -22,11 +22,12 @@ import           Control.Parallel.Strategies
 -- return all solutions
 solveWith :: (Game -> [Command]) -- ^ solver interface
           -> T.Text              -- ^ tag to use (suffixed with seed)
+          -> [T.Text]            -- ^ Phrases of power
           ->  Problem -> [Solution]
-solveWith solveGame name problem@Problem{..}
+solveWith solveGame name phrases problem@Problem{..}
     = zipWith mkSolutions seeds (parMap rdeepseq solveGame games)
     -- using parmap here for more fine-grained parallelism
-    where games = map (either die id . initGame problem) seeds
+    where games = map (either die id . initGame phrases problem) seeds
 
           seeds = V.toList problemSourceSeeds
 
@@ -45,14 +46,14 @@ solveWith solveGame name problem@Problem{..}
           die x = error (unlines ["Solvers", T.unpack tag, show x])
 
 
-solvers :: [(String, Problem -> [Solution])]
+solvers :: [(String, [String] -> Problem -> [Solution])]
 solvers = (  "florida", useFloRida)
           :( "nostrovia", useNostrovia)
           : []
 
-useFloRida :: Problem -> [Solution]
-useFloRida = solveWith FloRida.solveGame "flo-rida"
+useFloRida :: [String] -> Problem -> [Solution]
+useFloRida powerPhrases = solveWith FloRida.solveGame "flo-rida" (map T.pack powerPhrases)
 
-useNostrovia :: Problem -> [Solution]
-useNostrovia = solveWith Nostrovia.solveGame "nostrovia"
+useNostrovia :: [String] -> Problem -> [Solution]
+useNostrovia powerPhrases = solveWith Nostrovia.solveGame "nostrovia" (map T.pack powerPhrases)
 

@@ -29,6 +29,11 @@ import           Debug.Trace
 
 ------------------------------------------------------------------------
 
+powerPhrases :: [Text]
+powerPhrases = ["ei!", "yuggoth"]
+
+------------------------------------------------------------------------
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -51,8 +56,8 @@ main = do
         Just s  -> s
 
     solvers = [ ("lucky",     Lucky.solve)
-              , ("florida",   FloRida.solve)
-              , ("nostrovia", Nostrovia.solve)
+              , ("florida",   FloRida.solve powerPhrases)
+              , ("nostrovia", Nostrovia.solve powerPhrases)
               , ("example6",  const problem6_seed0_example) ]
 
 ------------------------------------------------------------------------
@@ -68,7 +73,7 @@ encodeFrames problem@Problem{..} solution@Solution{..} =
 
     commands = V.fromList solutionCmds
 
-    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame problem solutionSeed)
+    game0 = either (\msg -> error ("encodeFrames: " ++ show msg)) id (initGame powerPhrases problem solutionSeed)
 
     runStep (game1@Game{..}, cmds0)
         | V.null cmds0 = Nothing

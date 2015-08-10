@@ -25,8 +25,8 @@ import           Debug.Trace
 solveGame :: Game -> [Command]
 solveGame = allMoves
 
-solve :: Problem -> Solution
-solve problem@Problem{..} = Solution {
+solve :: [T.Text] -> Problem -> Solution
+solve phrases problem@Problem{..} = Solution {
       solutionProb = problemId
     , solutionSeed = seed
     , solutionTag  = Just tag
@@ -40,7 +40,7 @@ solve problem@Problem{..} = Solution {
         <> "-"
         <> T.pack (show (unSeed seed))
 
-    game = either die id (initGame problem seed)
+    game = either die id (initGame phrases problem seed)
 
     die x = error ("Nostrovia.solve: " ++ show x)
 
@@ -65,7 +65,7 @@ nextMove :: Game -> [Command]
 nextMove Game{..} = best
   where
     (_, best) = maximumBy (compare `on` myHeuristic gameBoard . fst)
-              $ validMoves unit gameBoard
+              $ validMoves gamePhrases unit gameBoard
 
     unit = activeUnit (fromMaybe (error msg) gameActive)
     msg  = "nextMove: invalid game state, must have a spawned unit!"

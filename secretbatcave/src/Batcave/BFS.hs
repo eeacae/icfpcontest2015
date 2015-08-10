@@ -70,23 +70,23 @@ instance Ord Path where
 
 -- | All possible last moves that lock a unit, none of these are valid moves
 -- (they move onto a filled cell or off the board).
-allLockingPositions :: Unit -> Board -> ([Unit], Map Path (Command, Unit))
-allLockingPositions start = bfs (singleton path) (Map.singleton path (undefined, start))
+allLockingPositions :: [T.Text] -> Unit -> Board -> ([Unit], Map Path (Command, Unit))
+allLockingPositions phrases start = bfs phrases (singleton path) (Map.singleton path (undefined, start))
   where
     path = Path start (Set.singleton start)
 
 -- | Return a list of the valid moves for the given unit on a board.
 -- The valid moves contain the unit's final position on the board, and a list
 -- of commands that will lock the unit in that position.
-validMoves :: Unit -> Board -> [(Unit, [Command])]
-validMoves u b
+validMoves :: [T.Text] -> Unit -> Board -> [(Unit, [Command])]
+validMoves phrases u b
     | unitPlaceable b u = if null moves
                           then error "validMoves: no valid moves"
                           else moves
 
     | otherwise         = error "validMoves: cannot start from a non-placeable unit"
   where
-    (us, ps) = bfs (singleton path) (Map.singleton path (undefined, u)) b
+    (us, ps) = bfs phrases (singleton path) (Map.singleton path (undefined, u)) b
     moves    = mapMaybe (backtrack ps) us
     path     = Path u (Set.singleton u)
 
@@ -104,12 +104,12 @@ backtrack ps u = fmap (\v -> (snd v, reverse $ map fst ucs')) $ listToMaybe ucs
 
 -- | Unoptimised BFS over possible moves, accumulates moves that lock the unit,
 -- queues up any valid move that has not already been visited.
-bfs :: Queue Path -> Map Path (Command, Unit) -> Board -> ([Unit], Map Path (Command, Unit))
-bfs (Queue [] []) _ _     = mempty
-bfs queue0 visited0 board =
-    (map pathUnit (Map.keys to_output), visited1) <> bfs queue2 visited1 board
+bfs :: [T.Text] -> Queue Path -> Map Path (Command, Unit) -> Board -> ([Unit], Map Path (Command, Unit))
+bfs _ (Queue [] []) _ _     = mempty
+bfs phrases queue0 visited0 board =
+    (map pathUnit (Map.keys to_output), visited1) <> bfs phrases queue2 visited1 board
   where
-    (valid_children, invalid_children) = partitionChildren path board
+    (valid_children, invalid_children) = partitionChildren phrases path board
 
     to_queue       = valid_children   `Map.difference` visited0
     to_output      = invalid_children `Map.difference` visited0
@@ -119,12 +119,13 @@ bfs queue0 visited0 board =
     queue2         = append queue1 (Map.keys to_queue)
 
 -- | All legal and illegal moves from the given position
-partitionChildren :: Path
+partitionChildren :: [T.Text]
+                  -> Path
                   -> Board
                   -> (Map Path (Command, Unit),
                       Map Path (Command, Unit))
 
-partitionChildren (Path unit0 hist0) board =
+partitionChildren phrases (Path unit0 hist0) board =
     -- Find all legal moves from current unit
     let
         apply cmd
@@ -150,9 +151,9 @@ partitionChildren (Path unit0 hist0) board =
     in (Map.fromList (map snd valid_moves),
         Map.fromList (map snd invalid_moves))
   where
-    commands = reverse
-        [ PhraseOfPower "ei!"
-        , Move SW
+    commands = reverse $
+        map PhraseOfPower phrases ++
+        [ Move SW
         , Move SE
         , Move W
         , Move E
