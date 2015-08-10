@@ -73,7 +73,8 @@ HT.Hexagon = function(id, x, y) {
     this.P1 = new HT.Point(x + x1, y + y1);
 
     this.locked    = false;
-    this.current   = false;
+    this.member    = false;
+    this.pivot     = false;
     this.disabled  = false;
     this.lastColor = null;
 };
@@ -89,8 +90,11 @@ HT.Hexagon.prototype.draw = function(ctx) {
     if(this.locked)
         nextColor = "#de930c";
 
-    if(this.current)
+    if(this.member)
         nextColor = "#0099cc";
+
+    if(this.pivot)
+        nextColor = "#00cc99";
 
     if(this.disabled)
         nextColor = "#000000";

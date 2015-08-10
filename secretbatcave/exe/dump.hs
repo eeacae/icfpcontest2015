@@ -74,7 +74,8 @@ encodeFrames problem@Problem{..} solution@Solution{..} =
 encodeGame :: Game -> A.Value
 encodeGame game@Game{..} =
     A.object [ "locked"  .= fromBoard gameBoard
-             , "current" .= fromMaybe V.empty (fromActive <$> gameActive)
+             , "members" .= fromMaybe V.empty (activeMembers <$> gameActive)
+             , "pivot"   .= (activePivot <$> gameActive)
              , "score"   .= takeScore game ]
   where
     fromBoard = V.fromList
@@ -82,11 +83,15 @@ encodeGame game@Game{..} =
               . Array.assocs
               . unBoard
 
-    fromActive = V.map coord
-               . V.fromList
-               . Set.toList
-               . unitMembers
-               . activeUnit
+    activeMembers = V.map coord
+                  . V.fromList
+                  . Set.toList
+                  . unitMembers
+                  . activeUnit
+
+    activePivot = coord
+                . unitPivot
+                . activeUnit
 
     takeScore = unGameScore
               . gameScore

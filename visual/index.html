@@ -67,17 +67,22 @@
       document.getElementById("score").innerHTML = frame.score;
 
       grid.Hexes.forEach(function(h) {
-        h.locked  = false;
-        h.current = false;
+        h.locked = false;
+        h.member = false;
+        h.pivot  = false;
       });
 
       frame.locked.forEach(function(xy) {
         get(fromGalois(xy)).locked = true;
       });
 
-      frame.current.forEach(function(xy) {
-        get(fromGalois(xy)).current = true;
+      frame.members.forEach(function(xy) {
+        get(fromGalois(xy)).member = true;
       });
+
+      if (frame.pivot) {
+        get(fromGalois(frame.pivot)).pivot = true;
+      }
 
       grid.Hexes.forEach(function(h) {
         h.draw(ctx);
