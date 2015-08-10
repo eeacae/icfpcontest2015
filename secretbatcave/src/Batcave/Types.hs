@@ -37,11 +37,14 @@ module Batcave.Types
     , inBounds
     ) where
 
+import           Control.DeepSeq(NFData(..))
 import           Control.Monad (mzero)
 import           Control.Monad.ST (runST)
 import           Data.Aeson (FromJSON(..), ToJSON(..), Value(..), object, (.:), (.=))
 import           Data.Array
 import           Data.Monoid
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Vector as V
 import           Data.Vector.Algorithms.Radix (Radix(..))
@@ -50,7 +53,6 @@ import           Data.Vector.Unboxed (Unbox)
 import qualified Data.Vector.Unboxed as U
 import           Data.Vector.Unboxed.Deriving (derivingUnbox)
 import           GHC.Arr (Ix (..))
-import           Control.DeepSeq(NFData(..))
 
 import           Batcave.Commands
 import           Test.QuickCheck
@@ -84,7 +86,7 @@ $(derivingUnbox "Cell"
 data Unit = Unit {
 
     -- | The unit members.
-    unitMembers :: !(U.Vector Cell)
+    unitMembers :: !(Set Cell)
 
     -- | The rotation point of the unit.
   , unitPivot   :: !Cell
@@ -93,13 +95,13 @@ data Unit = Unit {
 
 
 -- | Map over the cells in a unit.
-makeUnit :: U.Vector Cell -> Cell -> Unit
-makeUnit unsorted pivot = Unit (radixSort unsorted) pivot
+makeUnit :: Set Cell -> Cell -> Unit
+makeUnit members pivot = Unit members pivot
 {-# INLINE makeUnit #-}
 
 -- | Map over the cells in a unit.
 mapUnit :: (Cell -> Cell) -> Unit -> Unit
-mapUnit f (Unit ms p) = makeUnit (U.map f ms) p
+mapUnit f (Unit ms p) = makeUnit (Set.map f ms) p
 {-# INLINE mapUnit #-}
 
 -- | Perform a radix sort of an unboxed vector.
@@ -141,7 +143,7 @@ data Problem = Problem {
   , problemHeight       :: !Int
 
     -- | Which cells start filled.
-  , problemFilled       :: !(U.Vector Cell)
+  , problemFilled       :: !(Set Cell)
 
     -- | How many units in the source.
   , problemSourceLength :: !Int
@@ -305,6 +307,9 @@ instance Arbitrary a => Arbitrary (V.Vector a) where
 
 instance (Arbitrary a, Unbox a)  => Arbitrary (U.Vector a) where
   arbitrary = U.fromList <$> arbitrary
+
+instance (Arbitrary a, Ord a)  => Arbitrary (Set a) where
+  arbitrary = Set.fromList <$> arbitrary
 
 instance Arbitrary Bounds where
   arbitrary = (Bounds (Cell 0 0))

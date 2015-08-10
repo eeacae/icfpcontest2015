@@ -5,9 +5,10 @@ module Batcave.Solver.Lucky (solve) where
 import           Batcave.Types
 import           Batcave.Commands
 
+import qualified Data.Set as Set
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Text   as T
 
 -- | a somewhat-random solution that drops pieces downwards and hopes to
 -- fill a line by chance at some point. Only considers the max width
@@ -44,8 +45,8 @@ solve p@Problem{..} =
                               "ei! "
                        
 unitWidth :: Unit -> Int
-unitWidth unit = let xs = U.map cellX (unitMembers unit)
-                 in U.maximum xs - U.minimum xs
+unitWidth unit = let xs = Set.map cellX (unitMembers unit)
+                 in Set.findMax xs - Set.findMin xs
 
 cellX :: Cell -> Int
 cellX (Cell x _) = x

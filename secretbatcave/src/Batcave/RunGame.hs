@@ -29,7 +29,6 @@ import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
 
 import           Batcave.Commands
 import           Batcave.Hex
@@ -170,7 +169,7 @@ stepGame cmd game0 = step =<< ensureUnit game0
         nextActive = join (moveNext <$> nextUnit <*> gameActive)
 
         makeScore rows unit = UnitScore {
-            scoreSize  = U.length (unitMembers unit)
+            scoreSize  = Set.size (unitMembers unit)
           , scoreLines = rows
           }
 

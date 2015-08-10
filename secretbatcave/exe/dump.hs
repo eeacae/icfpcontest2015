@@ -10,6 +10,7 @@ import qualified Data.Array as Array
 import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.Monoid ((<>))
+import qualified Data.Set as Set
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
 import           System.IO (stderr)
@@ -68,7 +69,8 @@ encodeGame game@Game{..} =
               . unBoard
 
     fromActive = V.map coord
-               . V.convert
+               . V.fromList
+               . Set.toList
                . unitMembers
                . activeUnit
 

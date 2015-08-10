@@ -9,9 +9,9 @@ import           Data.Function (on)
 import           Data.List (maximumBy)
 import           Data.Maybe (fromMaybe)
 import           Data.Monoid ((<>))
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
 
 import           Batcave.BFS (validMoves)
 import           Batcave.Commands
@@ -71,9 +71,9 @@ nextMove Game{..} = best
 
 -- | Return something that when maximised, selects the best unit placement.
 unitSortOrder :: Unit -> Int
-unitSortOrder unit = U.sum ys
+unitSortOrder unit = sum ys
   where
-    ys = U.map cellY
+    ys = Set.map cellY
        . unitMembers
        $ unit
 
