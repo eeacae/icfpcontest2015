@@ -4,7 +4,7 @@
 
 For ease of reference, the permitted characters in phrases of power are:
 
- * All alphanumeric characters
+ * All alphanumeric characters (are the case sensitive???)
  * `'`, `!` and `.` (single quote, exclamation mark, and full stop)
  * the tab, line feed and carriage return characters.
 
@@ -15,6 +15,10 @@ In particular, `-` (hyphen) is *not* permitted.
  * `Ei!`
 
 ### Candidate phrases
+
+`Ia! Ia`
+`R'lyeh`
+
 
 #### Strings from competition artifacts 
 
