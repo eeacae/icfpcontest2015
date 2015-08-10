@@ -116,7 +116,7 @@ placeUnit u b
 
 -- | Place a unit from a command application on a board. Return @Nothing@ if the placement is invalid.
 placeApp :: CommandApp -> Board -> Maybe Board
-placeApp app@(CommandApp u _ _) b
+placeApp app@(CommandApp u _ _ _) b
   | appPlaceable b app = Just $ b %// [(c, Full) | c <- Set.toList (unitMembers u)]
   | otherwise          = Nothing
 
@@ -264,7 +264,8 @@ rotateUnitCCW u = mapUnit (rotateCellCCW $ unitPivot u) u
 data CommandApp = CommandApp {
       appUnit    :: !Unit       -- ^ result of applying a command
     , appClear   :: !(Set Cell) -- ^ cells that need to be clear in order to succeed
-    , appHistory :: !(Set Unit) -- ^ all sub-units this application is comprised of
+    , appLock    :: !(Set Unit) -- ^ units that need to be placeable in order to lock
+    , appHistory :: !(Set Unit) -- ^ units that need to be placeable to to be valid
     } deriving (Eq, Ord, Show)
 
 applyCommand :: Command -> Unit -> CommandApp
@@ -277,13 +278,17 @@ applyCommand cmd orig = case cmd of
     Rotate CounterClockwise -> simple (rotateUnitCCW          orig)
     PhraseOfPower phrase    -> T.foldl loop (simple orig) phrase
   where
-    simple unit = CommandApp unit (unitMembers unit) (Set.singleton unit)
+    simple unit = CommandApp unit (unitMembers unit)
+                                  (Set.empty)
+                                  (Set.singleton unit)
 
-    loop (CommandApp unit0 cells0 hist0) c =
+    loop (CommandApp unit0 clear0 lock0 hist0) c =
         let
-            CommandApp unit1 cells1 hist1 = applyCommand (charToCommand c) unit0
+            CommandApp unit1 clear1 _ hist1 = applyCommand (charToCommand c) unit0
         in
-            CommandApp unit1 (cells0 `Set.union` cells1) (hist0 `Set.union` hist1)
+            CommandApp unit1 (clear0 `Set.union` clear1)
+                             (Set.insert unit0 lock0)
+                             (hist0 `Set.union` hist1)
 
 
 ------------------------------------------------------------------------

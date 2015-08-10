@@ -131,14 +131,17 @@ partitionChildren (Path unit0 hist0) board =
             | legal     = Just (valid, (path1, (cmd, unit0)))
             | otherwise = Nothing
           where
-            valid   = appPlaceable board applied
-            legal   = Set.null (Set.delete unit0 hist0 `Set.intersection` hist1)
-            --legal   = Set.null (hist0 `Set.intersection` hist1)
+            valid = all (unitPlaceable board) hist1
+            legal = wontVisitHistory && wontLockUntilEnd
 
-            path1   = Path unit1 (Set.union hist0 hist1)
-            unit1   = appUnit            applied
-            hist1   = appHistory         applied
+            wontVisitHistory = Set.null (Set.delete unit0 hist0 `Set.intersection` hist1)
+            wontLockUntilEnd = all (unitPlaceable board) lock1
+
             applied = applyCommand cmd unit0
+            unit1   = appUnit    applied
+            hist1   = appHistory applied
+            lock1   = appLock    applied
+            path1   = Path unit1 (Set.union hist0 hist1)
 
         moves = mapMaybe apply commands
 
