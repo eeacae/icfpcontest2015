@@ -44,6 +44,7 @@ data Game = Game {
     , gameActive :: !(Maybe ActiveUnit) -- ^ The unit under active player control
     , gameBoard  :: !Board              -- ^ Board state
     , gameScores :: ![UnitScore]        -- ^ For final scoring, leftmost==newest
+    , gamePhrases    :: ![Text]             -- ^ Phrases of Power
     } deriving (Eq, Show)
 
 data ActiveUnit = ActiveUnit {
@@ -72,11 +73,11 @@ data GameEnd =
 -- Game initialisation
 
 -- | Try to initialise a game.
-initGame :: Problem -> Seed -> Either GameEnd Game
-initGame p@Problem{..} seed = do
+initGame :: [Text] -> Problem -> Seed -> Either GameEnd Game
+initGame phrases p@Problem{..} seed = do
     board  <- makeBoard
     source <- makeSource
-    Right (Game source Nothing board [])
+    Right (Game source Nothing board [] (sort phrases))
   where
     makeBoard = maybe (flail "Invalid board size") Right (initialBoard p)
 
@@ -128,7 +129,7 @@ stepGame cmd game0 = step =<< ensureUnit game0
         | Just _    <- nextBoard
         , Just next <- nextActive
 
-        = Right $ game { gameActive = Just next }
+        = Right $ game { gameActive = Just next, gamePhrases = case gamePhrases of [] -> []; (x:xs) -> xs ++ [x]}
 
 
         -- Next board will be legal, but will result in a duplicate state, game over
