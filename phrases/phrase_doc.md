@@ -16,8 +16,8 @@ In particular, `-` (hyphen) is *not* permitted.
 
 ### Candidate phrases
 
-`Ia! Ia`
-`R'lyeh`
+ * `Ia! Ia`
+ * `R'lyeh`
 
 
 #### Strings from competition artifacts 
