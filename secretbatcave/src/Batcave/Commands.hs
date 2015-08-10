@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wall #-}
 
 -- | Data types and instances representing commands
 module Batcave.Commands
@@ -25,23 +26,27 @@ import Test.QuickCheck
 data CompassDirection
     = E | W | SE | SW
   deriving (Eq, Show)
-instance Arbitrary CompassDirection where arbitrary = elements [E, W, SE, SW]
+
+instance Arbitrary CompassDirection where
+    arbitrary = elements [E, W, SE, SW]
 
 data RotationDirection
     = Clockwise | CounterClockwise
   deriving (Eq, Show)
+
 instance Arbitrary RotationDirection where
-  arbitrary = elements [Clockwise, CounterClockwise]
+    arbitrary = elements [Clockwise, CounterClockwise]
 
 data Command
     = Move CompassDirection
     | Rotate RotationDirection
-    | PowerWord Text
+    | PhraseOfPower Text
   deriving (Eq, Show)
 
-instance NFData Command 
-    where rnf (Move x)   = seq x ()
-          rnf (Rotate x) = seq x ()
+instance NFData Command where
+    rnf (Move x)          = seq x ()
+    rnf (Rotate x)        = seq x ()
+    rnf (PhraseOfPower x) = seq x ()
 
 instance Arbitrary Command where
   arbitrary = oneof [Move <$> arbitrary, Rotate <$> arbitrary]
@@ -74,10 +79,12 @@ table = Map.fromList (zip ("abcdefghijklmnopqrstuvwxyz !.012345\'" :: [Char])
                           ("abbdbbaaaakllllpddkkkdkkbdlpppdbpalp"  :: [Char]))
 
 -- | deals with the characters not used in commandToChar
+textToCommands' :: Text -> [Command]
 textToCommands' = textToCommands   -- use canonical char.s
-                  . T.map replace  -- replacement as defined above
-                  . T.filter (not . (`elem`( "\t\n\r" :: [Char]))) -- remove ignored
-    where replace c = fromMaybe (error "unknown command") (Map.lookup c table)
+                . T.map replace    -- replacement as defined above
+                . T.filter (not . (`elem`( "\t\n\r" :: [Char]))) -- remove ignored
+  where
+    replace c = fromMaybe (error "unknown command") (Map.lookup c table)
 
 -- | replaces characters other than the ones we use in commandsToText
 -- by the used ones (by converting back and forth)
@@ -91,17 +98,7 @@ commandToText (Move SW)                 = T.pack "a"
 commandToText (Move SE)                 = T.pack "l"
 commandToText (Rotate Clockwise)        = T.pack "d"
 commandToText (Rotate CounterClockwise) = T.pack "d"
-commandToText (PowerWord s)             = s
-
--- | Maps a command to just one of the possible single character
--- representations
-commandToChar :: Command -> Char
-commandToChar (Move W)                  = 'p'
-commandToChar (Move E)                  = 'b'
-commandToChar (Move SW)                 = 'a'
-commandToChar (Move SE)                 = 'l'
-commandToChar (Rotate Clockwise)        = 'd'
-commandToChar (Rotate CounterClockwise) = 'k'
+commandToText (PhraseOfPower phrase)    = phrase
 
 -- | Inverse of charToCommand, partial; we assume that we are operating under
 -- the image of commandToChar.

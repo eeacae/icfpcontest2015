@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Breadth first search for locking moves
 module Batcave.BFS
 (
@@ -93,7 +95,7 @@ partitionChildren unit board =
         Map.fromList (map (first appUnit) invalid_moves))
   where
     commands = reverse
-        [ PowerWord (T.pack "ei!")
+        [ PhraseOfPower "ei!"
         , Move SW
         , Move SE
         , Move W

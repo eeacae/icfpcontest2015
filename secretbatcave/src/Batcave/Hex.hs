@@ -274,7 +274,7 @@ applyCommand cmd orig = case cmd of
     Move SW                 -> simple (translateUnitSouthWest orig)
     Rotate Clockwise        -> simple (rotateUnitCW           orig)
     Rotate CounterClockwise -> simple (rotateUnitCCW          orig)
-    PowerWord s             -> T.foldl loop (simple orig) s
+    PhraseOfPower phrase    -> T.foldl loop (simple orig) phrase
   where
     simple unit = CommandApp unit (unitMembers unit)
 
